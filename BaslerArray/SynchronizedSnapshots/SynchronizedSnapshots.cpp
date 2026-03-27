@@ -6,6 +6,7 @@
 
 #include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
+#include <pylon/gige/GigETransportLayer.h>
 
 #include <iostream>
 #include <vector>
@@ -60,12 +61,13 @@ struct Frame {
 };
 
 // ========================= SAFE QUEUE =========================
-/*
 template<typename T>
 class SafeQueue {
     queue<T> q;
     mutex m;
     condition_variable cv;
+    bool stopped = false;
+
 public:
     void push(const T& item) {
         {
@@ -75,14 +77,31 @@ public:
         cv.notify_one();
     }
 
-    T pop() {
+    void stop() {
+        {
+            lock_guard<mutex> lock(m);
+            stopped = true;
+        }
+        cv.notify_all();
+    }
+
+    bool pop(T& item) {
         unique_lock<mutex> lock(m);
-        cv.wait(lock, [&] { return !q.empty(); });
-        T item = q.front(); q.pop();
-        return item;
+
+        cv.wait(lock, [&] {
+            return !q.empty() || stopped;
+        });
+
+        if (q.empty()) {
+            return false; // stopped and no data
+        }
+
+        item = q.front();
+        q.pop();
+        return true;
     }
 };
-*/
+
 
 // ========================= LOGGER =========================
 void Log(const string& msg) {
@@ -102,6 +121,7 @@ public:
     }
 
     void Configure(const GlobalConfig& cfg) {
+        // TODO: Format, PTP?, White Balance, FPS?, Jumbo frames and delay?
         INodeMap& n = camera.GetNodeMap();
         try {
             if (cfg.width > 0 && IsWritable(n.GetNode("Width")))
@@ -121,6 +141,25 @@ public:
         }
     }
 
+    void ConfigureActionTrigger(uint32_t deviceKey,
+        uint32_t groupKey,
+        uint32_t groupMask) {
+        INodeMap& n = camera.GetNodeMap();
+
+        // Enable trigger mode
+        CEnumerationPtr(n.GetNode("TriggerSelector"))->FromString("FrameStart");
+        CEnumerationPtr(n.GetNode("TriggerMode"))->FromString("On");
+        CEnumerationPtr(n.GetNode("TriggerSource"))->FromString("Action1");
+
+        // Continuous acquisition (required)
+        CEnumerationPtr(n.GetNode("AcquisitionMode"))->FromString("Continuous");
+
+        // Configure action keys
+        CIntegerPtr(n.GetNode("ActionDeviceKey"))->SetValue(deviceKey);
+        CIntegerPtr(n.GetNode("ActionGroupKey"))->SetValue(groupKey);
+        CIntegerPtr(n.GetNode("ActionGroupMask"))->SetValue(groupMask);
+    }
+
     void EnablePTP() {
         INodeMap& n = camera.GetNodeMap();
         if (IsWritable(n.GetNode("PtpEnable"))) {
@@ -138,12 +177,14 @@ public:
 class CameraManager {
 private:
     vector<unique_ptr<CameraNode>> cameras;
-    //SafeQueue<Frame> frameQueue;
+    SafeQueue<Frame> frameQueue;
     atomic<bool> running{ false };
     vector<thread> grabThreads;
-    //thread consumerThread;
+    thread consumerThread;
+
 
 public:
+
     map<string, string> LoadCameraOrder(const string& filename) {
         ifstream file(filename);
         if (!file.is_open()) {
@@ -206,6 +247,18 @@ public:
             cam->Configure(cfg);
     }
 
+    void SetupActionCommandTrigger() {
+        const uint32_t deviceKey = 1;
+        const uint32_t groupKey = 1;
+        const uint32_t groupMask = 0xFFFFFFFF;
+
+        for (auto& cam : cameras) {
+            cam->ConfigureActionTrigger(deviceKey, groupKey, groupMask);
+        }
+
+        cout << "Action command trigger configured." << endl;
+    }
+
     void WaitForPtpSync() {
         cout << "Waiting for PTP synchronization..." << endl;
 
@@ -216,12 +269,12 @@ public:
 
             int master_count = 0;
             for (auto& cam : cameras) {
-                INodeMap& nodemap = cam->camera.GetNodeMap();
+                INodeMap& n = cam->camera.GetNodeMap();
 
                 //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
-                auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588StatusLatched"))->ToString();
+                //auto status = CEnumerationPtr(n.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
-                auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588Status"))->ToString();
+                auto status = CEnumerationPtr(n.GetNode("GevIEEE1588Status"))->ToString();
 
                 cout << "Cam " << cam->logicalId << " PTP: " << status << endl;
 
@@ -238,14 +291,14 @@ public:
 
         cout << "PTP synchronized across all cameras." << endl;
         for (auto& cam : cameras) {
-            INodeMap& nodemap = cam->camera.GetNodeMap();
+            INodeMap& n = cam->camera.GetNodeMap();
 
             //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
             //auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
-            auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588Status"))->ToString();
+            auto status = CEnumerationPtr(n.GetNode("GevIEEE1588Status"))->ToString();
 
-            int offsetFromMaster = CIntegerPtr(nodemap.GetNode("GevIEEE1588OffsetFromMaster"))->GetValue();
+            int offsetFromMaster = CIntegerPtr(n.GetNode("GevIEEE1588OffsetFromMaster"))->GetValue();
 
             cout << "Cam " << cam->logicalId << " PTP: " << status << " Offset: " << offsetFromMaster << endl;
         }
@@ -258,47 +311,71 @@ public:
             cam->camera.StartGrabbing(GrabStrategy_LatestImageOnly);
 
         // consumer thread
-        //consumerThread = thread(&CameraManager::ConsumeLoop, this);
+        consumerThread = thread(&CameraManager::ConsumeLoop, this);
 
         // grab threads
         for (auto& cam : cameras)
             grabThreads.emplace_back(&CameraManager::GrabLoop, this, cam.get());
     }
 
+    void Stop() {
+        frameQueue.stop();
+        running = false;
+
+        for (auto& cam : cameras) {
+            if (cam->camera.IsGrabbing()) {
+                cam->camera.StopGrabbing();
+            }
+        }
+
+        for (auto& t : grabThreads) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+
+        if (consumerThread.joinable()) {
+            consumerThread.join();
+        }
+    }
+
     void Trigger() {
         std::cout << "Trigger cameras!" << std::endl;
     }
 
-    void Stop() {
-        running = false;
+    void FireActionCommand() {
+        // Get the GigE transport layer.
+        // We'll need it later to issue the action commands.
+        CTlFactory& tlFactory = CTlFactory::GetInstance();
+        IGigETransportLayer* pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
 
-        for (auto& cam : cameras)
-            if (cam->camera.IsGrabbing())
-                cam->camera.StopGrabbing();
+        std::cout << "Trigger cameras!" << std::endl;
 
-        for (auto& t : grabThreads)
-            if (t.joinable()) t.join();
+        pTL->IssueActionCommand(
+            1,              // device key
+            1,              // group key
+            0xFFFFFFFF      // group mask
+        );
 
-        //if (consumerThread.joinable())
-        //    consumerThread.join();
+        cout << "Action command fired." << endl;
     }
 
 private:
     void GrabLoop(CameraNode* cam) {
         CGrabResultPtr res;
         while (running && cam->camera.IsGrabbing()) {
-            if (cam->camera.RetrieveResult(5000, res, TimeoutHandling_ThrowException)) {
+            if (cam->camera.RetrieveResult(50000, res, TimeoutHandling_ThrowException)) {
                 if (res->GrabSucceeded()) {
                     // TODO: push to queue to be written
                     Log( "Got a image from: " + cam->logicalId );
-                    /*
+                    
                     frameQueue.push({
                         cam->logicalId,
                         res->GetTimeStamp(),
                         res->GetBlockID(),
                         res
                         });
-                    */
+                    
                 }
             }
         }
@@ -306,11 +383,23 @@ private:
 
     void ConsumeLoop() {
         while (running) {
-            /*
-            Frame f = frameQueue.pop();
+            Frame f;
+
+            if (!frameQueue.pop(f)) {
+                break; // queue stopped
+            }
+
             Log("Cam " + f.cameraId + " Frame " + to_string(f.frameId) +
                 " Timestamp " + to_string(f.timestamp) + "\n");
-            */
+        }
+
+        cout << "Consumer thread exiting." << endl;
+    }
+
+    // TODO: ?
+    void displayLoop() {
+        while (running) {
+            // TODO: 
         }
     }
 };
@@ -335,9 +424,10 @@ int main() {
         manager.ConfigureAll(cfg);
 
         // 1. Wait for PTP sync to decide master/slave relationship TODO: and offset to settle
-        manager.WaitForPtpSync();
+        //manager.WaitForPtpSync();
 
         // 2. Setup trigger
+        manager.SetupActionCommandTrigger();
 
         // x. Start grabbing
         manager.Start();
@@ -347,22 +437,25 @@ int main() {
         while (true) {
             std::string input;
             std::getline(std::cin, input);
-            cout << input << endl;
 
             if (input == "q") {
+                cout << "Exiting..." << endl;
                 break;
             }
             else if (input == "w") {
-                manager.Trigger();
+                manager.FireActionCommand();
             }
-
         }       
 
         manager.Stop();
     }
     catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
+
+        // TODO: Remove the recording folder
     }
+
+    // TODO: If the recording folder is empty -> Remove the recording folder
 
     PylonTerminate();
     return 0;
