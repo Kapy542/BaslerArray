@@ -77,6 +77,7 @@ public:
         cv.notify_one();
     }
 
+    // Queue needs to be stopped in order to prevent consumer getting stuck when exiting
     void stop() {
         {
             lock_guard<mutex> lock(m);
@@ -271,6 +272,7 @@ public:
             for (auto& cam : cameras) {
                 INodeMap& n = cam->camera.GetNodeMap();
 
+                // TODO: Does it really matter which one to use?
                 //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
                 //auto status = CEnumerationPtr(n.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
@@ -289,10 +291,12 @@ public:
             this_thread::sleep_for(chrono::milliseconds(500));
         }
 
+        // TODO: Wait for clocks to converge
         cout << "PTP synchronized across all cameras." << endl;
         for (auto& cam : cameras) {
             INodeMap& n = cam->camera.GetNodeMap();
 
+            // TODO: Does it really matter which one to use?
             //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
             //auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
@@ -319,7 +323,7 @@ public:
     }
 
     void Stop() {
-        frameQueue.stop();
+        frameQueue.stop(); // Stop the queue so consumer won't get stuck
         running = false;
 
         for (auto& cam : cameras) {
@@ -366,7 +370,7 @@ private:
         while (running && cam->camera.IsGrabbing()) {
             if (cam->camera.RetrieveResult(50000, res, TimeoutHandling_ThrowException)) {
                 if (res->GrabSucceeded()) {
-                    // TODO: push to queue to be written
+
                     Log( "Got a image from: " + cam->logicalId );
                     
                     frameQueue.push({
