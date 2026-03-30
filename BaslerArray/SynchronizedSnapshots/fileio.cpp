@@ -4,7 +4,12 @@ std::string get_time_string()
 {
     std::time_t rawtime = std::time(nullptr);
     std::tm now;
-    localtime_s(&now, &rawtime);
+    //localtime_s(&now, &rawtime);
+    #ifdef _WIN32
+        localtime_s(&now, &rawtime);
+    #else
+        localtime_r(&rawtime, &now);
+    #endif
 
     std::ostringstream oss;
     oss << std::put_time(&now, "%Y-%m-%d--%H-%M-%S");
