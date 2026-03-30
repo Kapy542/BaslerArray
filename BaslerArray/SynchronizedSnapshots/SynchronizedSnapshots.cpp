@@ -18,6 +18,9 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <filesystem>
+#include <sstream>
+#include <iomanip>
 
 #include <nlohmann/json.hpp>
 
@@ -31,24 +34,43 @@ using json = nlohmann::json;
 std::string out_folder = "./recordings/";
 
 // ========================= CONFIG =========================
-struct GlobalConfig {
+struct CameraConfig {
     int width = 0;
     int height = 0;
     double exposure = 0.0;
     double gain = 0.0;
+
+    std::string lightSourceSelector;
+
+    struct BalanceRatio {
+        std::string selector;
+        int balanceRatioRaw;
+    };
+
+    std::vector<BalanceRatio> balanceRatios;
 };
 
-GlobalConfig LoadConfig(const string& filename) {
+CameraConfig LoadConfig(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()) throw runtime_error("Failed to open config file");
 
     json j; file >> j;
 
-    GlobalConfig cfg;
+    CameraConfig cfg;
     cfg.width = j.value("width", 0);
     cfg.height = j.value("height", 0);
     cfg.exposure = j.value("exposure", 0.0);
     cfg.gain = j.value("gain", 0.0);
+
+    cfg.lightSourceSelector = j.at("lightSourceSelector").get<std::string>();
+
+    for (const auto& item : j.at("balanceRatioSelector")) {
+        CameraConfig::BalanceRatio br;
+        br.selector = item.at("selector").get<std::string>();
+        br.balanceRatioRaw = item.at("balanceRatioRaw").get<int>();
+        cfg.balanceRatios.push_back(br);
+    }
+
     return cfg;
 }
 
@@ -104,6 +126,35 @@ public:
 };
 
 
+// ========================= IMAGE SAVING =========================
+namespace fs = std::filesystem;
+
+// Save using Pylon (cross-platform, no extra deps)
+void SaveImage(const Frame& f, const std::string& baseDir) {
+    try {
+        // Create per-camera directory: output/01/, output/02/, ...
+        fs::path dir = fs::path(baseDir) / f.cameraId;
+        if (!fs::exists(dir)) {
+            fs::create_directories(dir);
+        }
+
+        // Build filename: camId_timestamp_frameId.png
+        std::ostringstream name;
+        name << f.cameraId << "_" << f.timestamp << "_" << f.frameId << ".png";
+        fs::path filepath = dir / name.str();
+
+        // Save via Pylon ImagePersistence
+        CImagePersistence::Save(
+            ImageFileFormat_Png,
+            filepath.string().c_str(),
+            f.grab
+        );
+    }
+    catch (const GenericException& e) {
+        cerr << "Save error: " << e.GetDescription() << endl;
+    }
+}
+
 // ========================= LOGGER =========================
 void Log(const string& msg) {
     cout << "[" << get_time_string() << "] " << msg << std::endl;
@@ -121,10 +172,16 @@ public:
         serial = camera.GetDeviceInfo().GetSerialNumber();
     }
 
-    void Configure(const GlobalConfig& cfg) {
+    void Configure(const CameraConfig& cfg) {
         // TODO: Format, PTP?, White Balance, FPS?, Jumbo frames and delay?
         INodeMap& n = camera.GetNodeMap();
         try {
+            CEnumerationPtr(n.GetNode("PixelFormat"))->FromString("BayerRG8");
+
+            CEnumerationPtr(n.GetNode("BalanceWhiteAuto"))->FromString("Off");
+            CEnumerationPtr(n.GetNode("ExposureAuto"))->FromString("Off");
+            CEnumerationPtr(n.GetNode("GainAuto"))->FromString("Off");
+
             if (cfg.width > 0 && IsWritable(n.GetNode("Width")))
                 CIntegerPtr(n.GetNode("Width"))->SetValue(cfg.width);
 
@@ -136,6 +193,19 @@ public:
 
             if (cfg.gain > 0 && IsWritable(n.GetNode("Gain")))
                 CFloatPtr(n.GetNode("Gain"))->SetValue(cfg.gain);
+
+            // Light source
+            CEnumerationPtr(n.GetNode("LightSourceSelector"))
+                ->FromString(cfg.lightSourceSelector.c_str());
+
+            // White balance ratios
+            for (const auto& br : cfg.balanceRatios) {
+                CEnumerationPtr(n.GetNode("BalanceRatioSelector"))
+                    ->FromString(br.selector.c_str());
+
+                CIntegerPtr(n.GetNode("BalanceRatioRaw"))
+                    ->SetValue(br.balanceRatioRaw);
+            }
         }
         catch (const GenericException& e) {
             cerr << "Config error: " << e.GetDescription() << endl;
@@ -182,9 +252,10 @@ private:
     atomic<bool> running{ false };
     vector<thread> grabThreads;
     thread consumerThread;
-
+    std::string outputDir;
 
 public:
+    CameraManager(const std::string& dir) : outputDir(dir) {}
 
     map<string, string> LoadCameraOrder(const string& filename) {
         ifstream file(filename);
@@ -243,7 +314,7 @@ public:
         }
     }
 
-    void ConfigureAll(const GlobalConfig& cfg) {
+    void ConfigureAll(const CameraConfig& cfg) {
         for (auto& cam : cameras)
             cam->Configure(cfg);
     }
@@ -393,8 +464,10 @@ private:
                 break; // queue stopped
             }
 
-            Log("Cam " + f.cameraId + " Frame " + to_string(f.frameId) +
+            Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
                 " Timestamp " + to_string(f.timestamp) + "\n");
+
+            SaveImage(f, outputDir);
         }
 
         cout << "Consumer thread exiting." << endl;
@@ -419,7 +492,7 @@ int main() {
         out_folder = out_folder + take_name + "/";
         create_rec_folder(out_folder);
 
-        CameraManager manager;
+        CameraManager manager(out_folder);
 
         auto cfg = LoadConfig("camera_config.json");
         auto order = manager.LoadCameraOrder("camera_order.json");
