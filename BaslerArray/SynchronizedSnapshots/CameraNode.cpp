@@ -44,7 +44,7 @@ void CameraNode::Configure(const CameraConfig& cfg) {
         TrySetInt(n, "BalanceRatioRaw", br.balanceRatioRaw);
     }
 
-    TrySetInt(n, "GevSCPSPacketSize", 9000);
+    TrySetInt(n, "GevSCPSPacketSize", 1500);
 
     cout << "Configured camera " << logicalId << endl;
 }

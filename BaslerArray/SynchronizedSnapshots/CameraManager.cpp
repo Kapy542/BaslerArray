@@ -214,10 +214,11 @@ void CameraManager::FireActionCommand() {
 void CameraManager::GrabLoop(CameraNode* cam) {
     CGrabResultPtr res;
     while (running && cam->camera.IsGrabbing()) {
+        //Log(cam->logicalId + " Waiting image...");
         if (cam->camera.RetrieveResult(50000, res, TimeoutHandling_ThrowException)) {
             if (res->GrabSucceeded()) {
 
-                Log("Got a image from: " + cam->logicalId);
+                //Log("Got a image from: " + cam->logicalId);
 
                 frameQueue.push({
                     cam->logicalId,
@@ -229,12 +230,14 @@ void CameraManager::GrabLoop(CameraNode* cam) {
             }
         }
     }
+    Log("Grap loop for camera: " + cam->logicalId + " exiting...");
 }
 
 void CameraManager::ConsumeLoop() {
     while (running) {
         Frame f;
 
+        //Log("Consume loop waiting data ");
         if (!frameQueue.pop(f)) {
             break; // queue stopped
         }
@@ -245,7 +248,7 @@ void CameraManager::ConsumeLoop() {
         SaveImage(f, outputDir);
     }
 
-    cout << "Consumer thread exiting." << endl;
+    cout << "Consumer thread exiting..." << endl;
 }
 
 // TODO: ?
