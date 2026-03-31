@@ -151,11 +151,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="fileio.cpp" />
+    <ClCompile Include="CameraManager.cpp" />
+    <ClCompile Include="CameraNode.cpp" />
+    <ClCompile Include="configs\config_loader.cpp" />
     <ClCompile Include="SynchronizedSnapshots.cpp" />
+    <ClCompile Include="utils\file_io.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fileio.h" />
+    <ClInclude Include="CameraManager.h" />
+    <ClInclude Include="CameraNode.h" />
+    <ClInclude Include="configs\CameraConfig.h" />
+    <ClInclude Include="configs\config_loader.h" />
+    <ClInclude Include="core\Frame.h" />
+    <ClInclude Include="core\SafeQueue.h" />
+    <ClInclude Include="utils\file_io.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
