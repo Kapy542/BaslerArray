@@ -17,65 +17,53 @@ CameraNode::~CameraNode() {
 }
 
 void CameraNode::Configure(const CameraConfig& cfg) {
-    // TODO: FPS and delay?
     INodeMap& n = camera.GetNodeMap();
-    try {
-        CEnumerationPtr(n.GetNode("PixelFormat"))->FromString("BayerRG8");
 
-        CEnumerationPtr(n.GetNode("BalanceWhiteAuto"))->FromString("Off");
-        CEnumerationPtr(n.GetNode("ExposureAuto"))->FromString("Off");
-        CEnumerationPtr(n.GetNode("GainAuto"))->FromString("Off");
+    TrySetEnum(n, "PixelFormat", "BayerRG8");
 
-        if (cfg.width > 0 && IsWritable(n.GetNode("Width")))
-            CIntegerPtr(n.GetNode("Width"))->SetValue(cfg.width);
+    TrySetEnum(n, "BalanceWhiteAuto", "Off");
+    TrySetEnum(n, "ExposureAuto", "Off");
+    TrySetEnum(n, "GainAuto", "Off");
 
-        if (cfg.height > 0 && IsWritable(n.GetNode("Height")))
-            CIntegerPtr(n.GetNode("Height"))->SetValue(cfg.height);
+    if (cfg.width > 0)
+        TrySetInt(n, "Width", cfg.width);
 
-        if (cfg.exposure > 0 && IsWritable(n.GetNode("ExposureTime")))
-            CFloatPtr(n.GetNode("ExposureTime"))->SetValue(cfg.exposure);
+    if (cfg.height > 0)
+        TrySetInt(n, "Height", cfg.height);
 
-        if (cfg.gain > 0 && IsWritable(n.GetNode("Gain")))
-            CFloatPtr(n.GetNode("Gain"))->SetValue(cfg.gain);
+    if (cfg.exposure > 0)
+        TrySetFloat(n, "ExposureTimeAbs", cfg.exposure);
 
-        // Light source
-        CEnumerationPtr(n.GetNode("LightSourceSelector"))
-            ->FromString(cfg.lightSourceSelector.c_str());
+    if (cfg.gain > 0)
+        TrySetFloat(n, "GainRaw", cfg.gain);
 
-        // White balance ratios
-        for (const auto& br : cfg.balanceRatios) {
-            CEnumerationPtr(n.GetNode("BalanceRatioSelector"))
-                ->FromString(br.selector.c_str());
+    TrySetEnum(n, "LightSourceSelector", cfg.lightSourceSelector);
 
-            CIntegerPtr(n.GetNode("BalanceRatioRaw"))
-                ->SetValue(br.balanceRatioRaw);
-        }
-
-        //CIntegerPtr(n.GetNode("GevSCPSPacketSize"))->SetValue(9000);
-
-        std::cout << "Configured camera " << logicalId << endl;
+    for (const auto& br : cfg.balanceRatios) {
+        TrySetEnum(n, "BalanceRatioSelector", br.selector);
+        TrySetInt(n, "BalanceRatioRaw", br.balanceRatioRaw);
     }
 
-    catch (const GenericException& e) {
-        cerr << "Config error: " << e.GetDescription() << endl;
-    }
+    TrySetInt(n, "GevSCPSPacketSize", 9000);
+
+    cout << "Configured camera " << logicalId << endl;
 }
 
 void CameraNode::ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, uint32_t groupMask) {
     INodeMap& n = camera.GetNodeMap();
 
     // Enable trigger mode
-    CEnumerationPtr(n.GetNode("TriggerSelector"))->FromString("FrameStart");
-    CEnumerationPtr(n.GetNode("TriggerMode"))->FromString("On");
-    CEnumerationPtr(n.GetNode("TriggerSource"))->FromString("Action1");
+    TrySetEnum(n, "TriggerSelector", "FrameStart");
+    TrySetEnum(n, "TriggerMode", "On");
+    TrySetEnum(n, "TriggerSource", "Action1");
 
     // Continuous acquisition (required)
-    CEnumerationPtr(n.GetNode("AcquisitionMode"))->FromString("Continuous");
+    TrySetEnum(n, "AcquisitionMode", "Continuous");
 
     // Configure action keys
-    CIntegerPtr(n.GetNode("ActionDeviceKey"))->SetValue(deviceKey);
-    CIntegerPtr(n.GetNode("ActionGroupKey"))->SetValue(groupKey);
-    CIntegerPtr(n.GetNode("ActionGroupMask"))->SetValue(groupMask);
+    TrySetInt(n, "ActionDeviceKey", deviceKey);
+    TrySetInt(n, "ActionGroupKey", groupKey);
+    TrySetInt(n, "ActionGroupMask", groupMask);
 }
 
 void CameraNode::EnablePTP() {
@@ -87,5 +75,60 @@ void CameraNode::EnablePTP() {
     if (IsWritable(n.GetNode("GevIEEE1588"))) {
         cout << "Set GevIEEE1588" << endl;
         CBooleanPtr(n.GetNode("GevIEEE1588"))->SetValue(true);
+    }
+}
+
+
+
+// ========================= HELPER FUNCTIONS =========================
+
+bool CameraNode::TrySetEnum(INodeMap& n, const string& name, const string& value) {
+    try {
+        CEnumerationPtr node(n.GetNode(name.c_str()));
+        if (!node || !IsWritable(node)) {
+            cerr << "[WARN] " << name << " not writable\n";
+            return false;
+        }
+
+        node->FromString(value.c_str());
+        return true;
+    }
+    catch (const GenericException& e) {
+        cerr << "[ERROR] " << name << ": " << e.GetDescription() << endl;
+        return false;
+    }
+}
+
+bool CameraNode::TrySetInt(INodeMap& n, const string& name, uint32_t value) {
+    try {
+        CIntegerPtr node(n.GetNode(name.c_str()));
+        if (!node || !IsWritable(node)) {
+            cerr << "[WARN] " << name << " not writable\n";
+            return false;
+        }
+
+        node->SetValue(value);
+        return true;
+    }
+    catch (const GenericException& e) {
+        cerr << "[ERROR] " << name << ": " << e.GetDescription() << endl;
+        return false;
+    }
+}
+
+bool CameraNode::TrySetFloat(INodeMap& n, const string& name, double value) {
+    try {
+        CFloatPtr node(n.GetNode(name.c_str()));
+        if (!node || !IsWritable(node)) {
+            cerr << "[WARN] " << name << " not writable\n";
+            return false;
+        }
+
+        node->SetValue(value);
+        return true;
+    }
+    catch (const GenericException& e) {
+        cerr << "[ERROR] " << name << ": " << e.GetDescription() << endl;
+        return false;
     }
 }

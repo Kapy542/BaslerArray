@@ -16,11 +16,8 @@
 #include "configs/CameraConfig.h"
 #include "configs/config_loader.h"
 
-
 using namespace Pylon;
-//using namespace GenApi;
 using namespace std;
-//using json = nlohmann::json;
 
 std::string out_folder = "./recordings/";
 

@@ -2,7 +2,6 @@
 
 #include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
-#include <pylon/gige/GigETransportLayer.h>
 
 #include <string>
 #include <vector>
@@ -12,6 +11,10 @@
 class CameraNode
 {
 public:
+    Pylon::CBaslerUniversalInstantCamera camera;
+    std::string serial;
+    std::string logicalId;
+
     CameraNode(Pylon::IPylonDevice* device, const std::string& id);
     ~CameraNode();
 
@@ -19,11 +22,11 @@ public:
 
     void ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, uint32_t groupMask);
 
-    void EnablePTP();
+    void EnablePTP();  
 
-
-    Pylon::CBaslerUniversalInstantCamera camera;
-    std::string serial;
-    std::string logicalId;
+private: 
+    bool TrySetEnum(GenApi::INodeMap& n, const std::string& name, const std::string& value);
+    bool TrySetInt(GenApi::INodeMap& n, const std::string& name, uint32_t value);
+    bool TrySetFloat(GenApi::INodeMap& n, const std::string& name, double value);
 };
 
