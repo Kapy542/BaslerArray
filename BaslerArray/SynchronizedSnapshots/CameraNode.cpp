@@ -19,6 +19,8 @@ CameraNode::~CameraNode() {
 void CameraNode::Configure(const CameraConfig& cfg) {
     INodeMap& n = camera.GetNodeMap();
 
+    TrySetBool(n, "ReverseX", false);
+    TrySetBool(n, "ReverseY", false);
     TrySetEnum(n, "PixelFormat", "BayerRG8");
 
     TrySetEnum(n, "BalanceWhiteAuto", "Off");
@@ -35,7 +37,7 @@ void CameraNode::Configure(const CameraConfig& cfg) {
         TrySetFloat(n, "ExposureTimeAbs", cfg.exposure);
 
     if (cfg.gain > 0)
-        TrySetFloat(n, "GainRaw", cfg.gain);
+        TrySetInt(n, "GainRaw", cfg.gain);
 
     TrySetEnum(n, "LightSourceSelector", cfg.lightSourceSelector);
 
@@ -119,6 +121,23 @@ bool CameraNode::TrySetInt(INodeMap& n, const string& name, uint32_t value) {
 bool CameraNode::TrySetFloat(INodeMap& n, const string& name, double value) {
     try {
         CFloatPtr node(n.GetNode(name.c_str()));
+        if (!node || !IsWritable(node)) {
+            cerr << "[WARN] " << name << " not writable\n";
+            return false;
+        }
+
+        node->SetValue(value);
+        return true;
+    }
+    catch (const GenericException& e) {
+        cerr << "[ERROR] " << name << ": " << e.GetDescription() << endl;
+        return false;
+    }
+}
+
+bool CameraNode::TrySetBool(INodeMap & n, const string & name, bool value) {
+    try {
+        CBooleanPtr node(n.GetNode(name.c_str()));
         if (!node || !IsWritable(node)) {
             cerr << "[WARN] " << name << " not writable\n";
             return false;

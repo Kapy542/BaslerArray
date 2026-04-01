@@ -28,5 +28,6 @@ private:
     bool TrySetEnum(GenApi::INodeMap& n, const std::string& name, const std::string& value);
     bool TrySetInt(GenApi::INodeMap& n, const std::string& name, uint32_t value);
     bool TrySetFloat(GenApi::INodeMap& n, const std::string& name, double value);
+    bool TrySetBool(GenApi::INodeMap& n, const std::string& name, bool value);
 };
 

@@ -2,7 +2,7 @@
   "width": 1920,
   "height": 1200,
   "exposure": 5000.0,
-  "gain": 5.0,
+  "gain": 10,
   
   "lightSourceSelector": "Custom",
   "balanceRatioSelector": [
