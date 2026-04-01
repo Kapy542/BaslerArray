@@ -6,8 +6,6 @@
 
 #include <vector>
 #include <fstream>
-#include <thread>
-#include <atomic>
 
 #include "core/Frame.h"
 #include "core/SafeQueue.h"

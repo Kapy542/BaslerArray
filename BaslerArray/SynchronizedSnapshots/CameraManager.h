@@ -1,6 +1,8 @@
 #pragma once
 #include <map>
 #include <string>
+#include <thread>
+#include <atomic>
 
 #include "CameraNode.h"
 #include "core/Frame.h"
