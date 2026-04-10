@@ -6,6 +6,10 @@
 
 #include <pylon/PylonIncludes.h>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -23,6 +27,11 @@ std::string out_folder = "./recordings/";
 
 
 int main() {
+    int width = 640, height = 480;
+    cv::Mat src(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+    cv::imshow("Image", src);
+    cv::waitKey(0);
+
     PylonInitialize();
 
     try {
