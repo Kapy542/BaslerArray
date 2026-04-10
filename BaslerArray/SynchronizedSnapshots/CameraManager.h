@@ -14,9 +14,11 @@ class CameraManager
 private:
     vector<unique_ptr<CameraNode>> cameras;
     SafeQueue<Frame> frameQueue;
+    SafeQueue<Frame> previewQueue;
     atomic<bool> running{ false };
     vector<thread> grabThreads;
     thread consumerThread;
+    thread previewThread;
     std::string outputDir;
 
 public:
@@ -45,5 +47,5 @@ private:
     void ConsumeLoop();
 
     // TODO: ?
-    void displayLoop();
+    void PreviewLoop();
 };

@@ -4,6 +4,10 @@
 #include <pylon/BaslerUniversalInstantCamera.h>
 #include <pylon/gige/GigETransportLayer.h>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
 #include <vector>
 #include <fstream>
 
@@ -18,6 +22,7 @@ using namespace GenApi;
 using namespace std;
 using json = nlohmann::json;
 
+const int PREVIEW_EVERY_N = 1;
 
 void Log(const string& msg) {
     cout << "[" << get_time_string() << "] " << msg << std::endl;
@@ -166,6 +171,7 @@ void CameraManager::Start() {
 
     // consumer thread
     consumerThread = thread(&CameraManager::ConsumeLoop, this);
+    previewThread = thread(&CameraManager::PreviewLoop, this);
 
     // grab threads
     for (auto& cam : cameras)
@@ -174,6 +180,7 @@ void CameraManager::Start() {
 
 void CameraManager::Stop() {
     frameQueue.stop(); // Stop the queue so consumer won't get stuck
+    previewQueue.stop();
     running = false;
 
     for (auto& cam : cameras) {
@@ -190,6 +197,10 @@ void CameraManager::Stop() {
 
     if (consumerThread.joinable()) {
         consumerThread.join();
+    }
+
+    if (previewThread.joinable()) {
+        previewThread.join();
     }
 }
 
@@ -212,20 +223,28 @@ void CameraManager::FireActionCommand() {
 
 void CameraManager::GrabLoop(CameraNode* cam) {
     CGrabResultPtr res;
+
     while (running && cam->camera.IsGrabbing()) {
         //Log(cam->logicalId + " Waiting image...");
         if (cam->camera.RetrieveResult(50000, res, TimeoutHandling_ThrowException)) {
+
             if (res->GrabSucceeded()) {
 
                 //Log("Got a image from: " + cam->logicalId);
-
-                frameQueue.push({
+                Frame f{
                     cam->logicalId,
                     res->GetTimeStamp(),
                     res->GetBlockID(),
                     res
-                    });
+                };
 
+                // Always push to writer
+                frameQueue.push(f);
+
+                // Only every Nth frame goes to preview
+                if (f.frameId % PREVIEW_EVERY_N == 0) {
+                    previewQueue.push(f);
+                }
             }
         }
     }
@@ -251,8 +270,22 @@ void CameraManager::ConsumeLoop() {
 }
 
 // TODO: ?
-void CameraManager::displayLoop() {
+void CameraManager::PreviewLoop() {
     while (running) {
-        // TODO: 
+        Frame f;
+
+        if (!previewQueue.pop(f)) {
+            break; // queue stopped
+        }
+
+        int w = f.grab->GetWidth();
+        int h = f.grab->GetHeight();
+
+        uint8_t* buffer = (uint8_t*)f.grab->GetBuffer();
+
+        cv::Mat img(h, w, CV_8UC1, buffer);
+
+        cv::imshow(f.cameraId, img);
+        cv::waitKey(1);
     }
 }
