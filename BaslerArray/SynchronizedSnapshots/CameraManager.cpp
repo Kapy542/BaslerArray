@@ -336,4 +336,5 @@ void CameraManager::PreviewLoop() {
             buffer.erase(buffer.begin());
         }
     }
+    cv::destroyAllWindows();
 }
