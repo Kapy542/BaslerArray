@@ -44,6 +44,13 @@ void remove_rec_folder(std::string path)
     std::filesystem::remove_all(path);
 }
 
+void remove_if_empty(std::string path)
+{
+    if (std::filesystem::is_empty(path)) {
+        std::filesystem::remove_all(path);
+    }
+}
+
 // ========================= IMAGE SAVING =========================
 namespace fs = std::filesystem;
 

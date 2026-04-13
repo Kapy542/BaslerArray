@@ -269,7 +269,6 @@ void CameraManager::ConsumeLoop() {
     cout << "Consumer thread exiting..." << endl;
 }
 
-// TODO: ?
 void CameraManager::PreviewLoop() {
     while (running) {
         Frame f;

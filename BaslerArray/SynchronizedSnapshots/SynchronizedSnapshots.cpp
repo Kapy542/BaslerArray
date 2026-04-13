@@ -81,10 +81,11 @@ int main() {
     catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
 
-        // TODO: Remove the recording folder
+        // TODO: Remove the recording folder?
     }
 
     // TODO: If the recording folder is empty -> Remove the recording folder
+    remove_if_empty(out_folder);
 
     PylonTerminate();
     return 0;
