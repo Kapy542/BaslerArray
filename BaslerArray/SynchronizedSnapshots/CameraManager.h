@@ -13,9 +13,11 @@ class CameraManager
 {
 private:
     vector<unique_ptr<CameraNode>> cameras;
-    SafeQueue<Frame> frameQueue;
-    SafeQueue<Frame> previewQueue;
     atomic<bool> running{ false };
+    std::atomic<uint64_t> triggerId = 0;
+    std::atomic<uint64_t> saveTriggerId = -1;
+    SafeQueue<Frame> frameQueue;
+    SafeQueue<Frame> previewQueue;   
     vector<thread> grabThreads;
     thread consumerThread;
     thread previewThread;
@@ -41,11 +43,16 @@ public:
 
     void FireActionCommand();
 
+    bool IsRunning();
+
 private:
+    void TriggerLoop();
+
     void GrabLoop(CameraNode* cam);
 
     void ConsumeLoop();
 
-    // TODO: ?
     void PreviewLoop();
+
+    void RequestSave();
 };

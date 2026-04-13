@@ -210,7 +210,7 @@ void CameraManager::FireActionCommand() {
     CTlFactory& tlFactory = CTlFactory::GetInstance();
     IGigETransportLayer* pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
 
-    std::cout << "Trigger cameras!" << std::endl;
+    //std::cout << "Trigger cameras!" << std::endl;
 
     pTL->IssueActionCommand(
         1,              // device key
@@ -219,6 +219,14 @@ void CameraManager::FireActionCommand() {
     );
 
     cout << "Action command fired." << endl;
+}
+
+void CameraManager::TriggerLoop() {
+    while (running) {
+        FireActionCommand();
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        triggerId++;
+    }
 }
 
 void CameraManager::GrabLoop(CameraNode* cam) {
@@ -238,8 +246,9 @@ void CameraManager::GrabLoop(CameraNode* cam) {
                     res
                 };
 
-                // Always push to writer
-                frameQueue.push(f);
+                if (res->GetBlockID() == saveTriggerId.load()) {
+                    frameQueue.push(f);
+                }
 
                 // Only every Nth frame goes to preview
                 if (f.frameId % PREVIEW_EVERY_N == 0) {
@@ -252,14 +261,10 @@ void CameraManager::GrabLoop(CameraNode* cam) {
 }
 
 void CameraManager::ConsumeLoop() {
-    while (running) {
-        Frame f;
+    Frame f;
 
-        //Log("Consume loop waiting data ");
-        if (!frameQueue.pop(f)) {
-            break; // queue stopped
-        }
-
+    while (!frameQueue.pop(f)) {
+        
         Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
             " Timestamp " + to_string(f.timestamp) + "\n");
 
@@ -326,7 +331,16 @@ void CameraManager::PreviewLoop() {
             }
 
             cv::imshow("Preview", display);
-            cv::waitKey(1);
+            int key = cv::waitKey(1);
+
+            if (key == 'q' || key == 27) { // ESC
+                std::cout << "Exiting..." << std::endl;
+                running = false;
+            }
+            else if (key == 'w') {
+                //RequestSave();
+                saveTriggerId = triggerId.load() + 2;
+            }
 
             buffer.erase(f.frameId);
         }
@@ -337,4 +351,12 @@ void CameraManager::PreviewLoop() {
         }
     }
     cv::destroyAllWindows();
+}
+
+bool CameraManager::IsRunning() const {
+    return running.load();
+}
+
+void CameraManager::RequestSave() const {
+    
 }

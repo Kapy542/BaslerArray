@@ -63,18 +63,9 @@ int main() {
 
         cout << "Enter w to write image" << endl 
              << "Enter q to stop..." << endl;
-        while (true) {
-            std::string input;
-            std::getline(std::cin, input);
-
-            if (input == "q") {
-                cout << "Exiting..." << endl;
-                break;
-            }
-            else if (input == "w") {
-                manager.FireActionCommand();
-            }
-        }       
+        while (manager.IsRunning()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
 
         manager.Stop();
     }
