@@ -270,6 +270,13 @@ void CameraManager::ConsumeLoop() {
 }
 
 void CameraManager::PreviewLoop() {
+    std::map<uint64_t, std::map<std::string, Frame>> buffer;
+
+    int numCameras = cameras.size();
+    int maxWidth = 1920;
+    int maxHeight = 1200;
+    //cv::namedWindow("Preview", cv::WINDOW_NORMAL);
+
     while (running) {
         Frame f;
 
@@ -277,14 +284,56 @@ void CameraManager::PreviewLoop() {
             break; // queue stopped
         }
 
-        int w = f.grab->GetWidth();
-        int h = f.grab->GetHeight();
+        buffer[f.frameId][f.cameraId] = f;
 
-        uint8_t* buffer = (uint8_t*)f.grab->GetBuffer();
+        if (buffer[f.frameId].size() == numCameras) {
 
-        cv::Mat img(h, w, CV_8UC1, buffer);
+            auto& frames = buffer[f.frameId];
 
-        cv::imshow(f.cameraId, img);
-        cv::waitKey(1);
+            int w = frames.begin()->second.grab->GetWidth();
+            int h = frames.begin()->second.grab->GetHeight();
+
+            // TODO: Automatic grid size
+            int cols = 2;
+            int rows = 3;
+
+            cv::Mat grid = cv::Mat::zeros(rows * h, cols * w, CV_8UC1);
+
+            int i = 0;
+            for (auto& [id, frame] : frames) {
+
+                cv::Mat img(h, w, CV_8UC1,
+                    (uint8_t*)frame.grab->GetBuffer());
+
+                int r = i / cols;
+                int c = i % cols;
+
+                img.copyTo(grid(cv::Rect(c * w, r * h, w, h)));
+
+                i++;
+            }
+
+            // Resize to fit the display
+            cv::Mat display = grid;
+
+            double scale = std::min(
+                (double)maxWidth / grid.cols,
+                (double)maxHeight / grid.rows
+            );
+
+            if (scale < 1.0) {
+                cv::resize(grid, display, cv::Size(), scale, scale);
+            }
+
+            cv::imshow("Preview", display);
+            cv::waitKey(1);
+
+            buffer.erase(f.frameId);
+        }
+
+        // prevent memory growth
+        if (buffer.size() > 50) {
+            buffer.erase(buffer.begin());
+        }
     }
 }
