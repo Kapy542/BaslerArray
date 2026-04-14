@@ -61,8 +61,9 @@ int main() {
         // x. Start grabbing
         manager.Start();
 
-        cout << "Enter w to write image" << endl 
-             << "Enter q to stop..." << endl;
+        // Manager runs until OpenCV window receives stop command
+        cout << "Press w to write image" << endl 
+             << "Press ESC ot q to stop..." << endl;
         while (manager.IsRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
@@ -75,7 +76,6 @@ int main() {
         // TODO: Remove the recording folder?
     }
 
-    // TODO: If the recording folder is empty -> Remove the recording folder
     remove_if_empty(out_folder);
 
     PylonTerminate();

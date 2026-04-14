@@ -23,15 +23,22 @@ using namespace std;
 using json = nlohmann::json;
 
 const int PREVIEW_EVERY_N = 1;
+const int FPS = 1;
+const int period = 1000 / FPS;
 
 void Log(const string& msg) {
-    cout << "[" << get_time_string() << "] " << msg << std::endl;
+    std::cout << "[" << get_time_string() << "] " << msg << std::endl;
 }
 
 
 // ========================= CAMERA MANAGER =========================
 
+// ============================= SETUP ==============================
+
 CameraManager::CameraManager(const std::string& dir) : outputDir(dir) {}
+CameraManager::~CameraManager() {
+    Stop();
+}
 
 map<string, string> CameraManager::LoadCameraOrder(const string& filename) {
     ifstream file(filename);
@@ -111,6 +118,7 @@ void CameraManager::SetupActionCommandTrigger() {
     cout << "Action command trigger configured." << endl << endl;
 }
 
+// TODO: this!
 void CameraManager::WaitForPtpSync() {
     cout << "Waiting for PTP synchronization..." << endl;
 
@@ -169,13 +177,16 @@ void CameraManager::Start() {
     for (auto& cam : cameras)
         cam->camera.StartGrabbing(GrabStrategy_LatestImageOnly);
 
-    // consumer thread
+    // Consumer threads (Write and preview)
     consumerThread = thread(&CameraManager::ConsumeLoop, this);
     previewThread = thread(&CameraManager::PreviewLoop, this);
 
-    // grab threads
+    // Threads retrieving images from the cameras and assigning them onto queue
     for (auto& cam : cameras)
         grabThreads.emplace_back(&CameraManager::GrabLoop, this, cam.get());
+
+    // Trigger thread
+    triggerThread = thread(&CameraManager::TriggerLoop, this);
 }
 
 void CameraManager::Stop() {
@@ -202,7 +213,15 @@ void CameraManager::Stop() {
     if (previewThread.joinable()) {
         previewThread.join();
     }
+
+    if (triggerThread.joinable()) {
+        triggerThread.join();
+    }
 }
+
+
+// ============================ COMMANDS ============================
+
 
 void CameraManager::FireActionCommand() {
     // Get the GigE transport layer.
@@ -221,10 +240,23 @@ void CameraManager::FireActionCommand() {
     cout << "Action command fired." << endl;
 }
 
+bool CameraManager::IsRunning() const {
+    return running.load();
+}
+
+void CameraManager::RequestSave() {
+    std::cout << "Save requested!" << std::endl;
+    saveTriggerId = triggerId.load() + 1;
+}
+
+
+// ============================ THREADS =============================
+
+
 void CameraManager::TriggerLoop() {
     while (running) {
         FireActionCommand();
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(period));
         triggerId++;
     }
 }
@@ -239,6 +271,15 @@ void CameraManager::GrabLoop(CameraNode* cam) {
             if (res->GrabSucceeded()) {
 
                 //Log("Got a image from: " + cam->logicalId);
+                /*
+                if (cam->logicalId == "01") {
+                    Log("Got a image from: " + cam->logicalId);
+                    Log("BlockID: " + std::to_string(res->GetBlockID()) + 
+                        "  triggerID: " + std::to_string(triggerId.load()) + 
+                        "  saveTriggerID: " + std::to_string(saveTriggerId.load()));
+                }
+                */
+
                 Frame f{
                     cam->logicalId,
                     res->GetTimeStamp(),
@@ -246,11 +287,13 @@ void CameraManager::GrabLoop(CameraNode* cam) {
                     res
                 };
 
+                // res->GetBlockID() should match corresponding triggerId?
                 if (res->GetBlockID() == saveTriggerId.load()) {
+                    //Log(cam->logicalId + " found matching ID...");
                     frameQueue.push(f);
                 }
 
-                // Only every Nth frame goes to preview
+                // Every Nth frame goes to preview
                 if (f.frameId % PREVIEW_EVERY_N == 0) {
                     previewQueue.push(f);
                 }
@@ -263,7 +306,8 @@ void CameraManager::GrabLoop(CameraNode* cam) {
 void CameraManager::ConsumeLoop() {
     Frame f;
 
-    while (!frameQueue.pop(f)) {
+    // Even if stopped, goes through whole queue before exiting
+    while (frameQueue.pop(f)) {
         
         Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
             " Timestamp " + to_string(f.timestamp) + "\n");
@@ -280,13 +324,13 @@ void CameraManager::PreviewLoop() {
     int numCameras = cameras.size();
     int maxWidth = 1920;
     int maxHeight = 1200;
-    //cv::namedWindow("Preview", cv::WINDOW_NORMAL);
 
     while (running) {
         Frame f;
 
+        // Stop immediately, do not process any remaining frames
         if (!previewQueue.pop(f)) {
-            break; // queue stopped
+            break;
         }
 
         buffer[f.frameId][f.cameraId] = f;
@@ -302,18 +346,40 @@ void CameraManager::PreviewLoop() {
             int cols = 2;
             int rows = 3;
 
-            cv::Mat grid = cv::Mat::zeros(rows * h, cols * w, CV_8UC1);
+            cv::Mat grid = cv::Mat::zeros(rows * h, cols * w, CV_8UC3);
 
             int i = 0;
             for (auto& [id, frame] : frames) {
 
-                cv::Mat img(h, w, CV_8UC1,
-                    (uint8_t*)frame.grab->GetBuffer());
+                cv::Mat img(h, w, CV_8UC1, (uint8_t*)frame.grab->GetBuffer());
+
+                // Bayer to color
+                cv::Mat imgColor;
+                cv::cvtColor(img, imgColor, cv::COLOR_BayerRG2RGB);
+
+                // Camera_idx
+                cv::putText(
+                    imgColor,
+                    "Cam " + frame.cameraId,
+                    cv::Point(30, 50),              // position
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    2.0,                            // font scale
+                    cv::Scalar(0, 255, 0),          // green text
+                    3                               // thickness
+                );
+
+                // Timestamp
+                cv::putText(imgColor,
+                    "Frame " + std::to_string(frame.frameId),
+                    cv::Point(35, 100),
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    1.3,
+                    cv::Scalar(255, 255, 0),
+                    2);
 
                 int r = i / cols;
                 int c = i % cols;
-
-                img.copyTo(grid(cv::Rect(c * w, r * h, w, h)));
+                imgColor.copyTo(grid(cv::Rect(c * w, r * h, w, h)));
 
                 i++;
             }
@@ -330,16 +396,15 @@ void CameraManager::PreviewLoop() {
                 cv::resize(grid, display, cv::Size(), scale, scale);
             }
 
-            cv::imshow("Preview", display);
+            cv::imshow("Preview   w: write   ESC/q: exit", display);
             int key = cv::waitKey(1);
 
             if (key == 'q' || key == 27) { // ESC
-                std::cout << "Exiting..." << std::endl;
+                std::cout << "Exit requested..." << std::endl;
                 running = false;
             }
             else if (key == 'w') {
-                //RequestSave();
-                saveTriggerId = triggerId.load() + 2;
+                RequestSave();              
             }
 
             buffer.erase(f.frameId);
@@ -350,13 +415,8 @@ void CameraManager::PreviewLoop() {
             buffer.erase(buffer.begin());
         }
     }
+
     cv::destroyAllWindows();
-}
 
-bool CameraManager::IsRunning() const {
-    return running.load();
-}
-
-void CameraManager::RequestSave() const {
-    
+    cout << "Preview thread exiting..." << endl;
 }

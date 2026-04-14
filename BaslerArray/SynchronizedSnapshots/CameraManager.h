@@ -13,19 +13,20 @@ class CameraManager
 {
 private:
     vector<unique_ptr<CameraNode>> cameras;
-    atomic<bool> running{ false };
-    std::atomic<uint64_t> triggerId = 0;
-    std::atomic<uint64_t> saveTriggerId = -1;
+    std::atomic<bool> running{ false };
+    std::atomic<uint64_t> triggerId = 1;      // Current trigger id: Updated by trigger loop on every trigger
+    std::atomic<uint64_t> saveTriggerId = -1; // ID to be written on disk: Set by preview loop to save upcoming image (triggerId + N)
     SafeQueue<Frame> frameQueue;
     SafeQueue<Frame> previewQueue;   
     vector<thread> grabThreads;
     thread consumerThread;
     thread previewThread;
+    thread triggerThread;
     std::string outputDir;
 
 public:
     CameraManager(const std::string& dir);
-    //~CameraManager();
+    ~CameraManager();
 
     std::map<std::string, std::string> LoadCameraOrder(const std::string& filename);
 
@@ -43,7 +44,7 @@ public:
 
     void FireActionCommand();
 
-    bool IsRunning();
+    bool IsRunning() const;
 
 private:
     void TriggerLoop();

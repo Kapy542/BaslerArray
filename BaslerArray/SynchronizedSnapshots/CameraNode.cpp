@@ -12,8 +12,14 @@ CameraNode::CameraNode(IPylonDevice* device, const string& id)
 
 CameraNode::~CameraNode() {
     std::cout << "Closing camera " << logicalId << endl;
-    if (camera.IsOpen())
-        camera.Close();
+    try {
+        if (camera.IsGrabbing())
+            camera.StopGrabbing();
+
+        if (camera.IsOpen())
+            camera.Close();
+    }
+    catch (const exception& e) { cerr << "Error in CameraNode destructor: " << e.what() << endl; }
 }
 
 void CameraNode::Configure(const CameraConfig& cfg) {
@@ -46,6 +52,7 @@ void CameraNode::Configure(const CameraConfig& cfg) {
         TrySetInt(n, "BalanceRatioRaw", br.balanceRatioRaw);
     }
 
+    // TODO: Change to 9000
     TrySetInt(n, "GevSCPSPacketSize", 1500);
 
     cout << "Configured camera " << logicalId << endl;
@@ -68,6 +75,7 @@ void CameraNode::ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, u
     TrySetInt(n, "ActionGroupMask", groupMask);
 }
 
+// TODO: this!
 void CameraNode::EnablePTP() {
     INodeMap& n = camera.GetNodeMap();
     if (IsWritable(n.GetNode("PtpEnable"))) {

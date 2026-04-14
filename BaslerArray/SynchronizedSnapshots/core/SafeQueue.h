@@ -35,6 +35,7 @@ public:
     bool pop(T& item) {
         unique_lock<mutex> lock(m);
 
+        // Waits here until: queue has data OR stopped is true
         cv.wait(lock, [&] {
             return !q.empty() || stopped;
         });
