@@ -14,8 +14,12 @@ class CameraManager
 private:
     vector<unique_ptr<CameraNode>> cameras;
     std::atomic<bool> running{ false };
+
     std::atomic<uint64_t> triggerId = 1;      // Current trigger id: Updated by trigger loop on every trigger
     std::atomic<uint64_t> saveTriggerId = -1; // ID to be written on disk: Set by preview loop to save upcoming image (triggerId + N)
+
+    std::atomic<bool> recording{ false };     // Flag for continuous recording
+
     SafeQueue<Frame> frameQueue;
     SafeQueue<Frame> previewQueue;   
     vector<thread> grabThreads;
@@ -56,4 +60,8 @@ private:
     void PreviewLoop();
 
     void RequestSave();
+
+    void StartRecording();
+
+    void StopRecording();
 };

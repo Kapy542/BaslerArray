@@ -63,7 +63,9 @@ int main() {
 
         // Manager runs until OpenCV window receives stop command
         cout << "Press w to write image" << endl 
-             << "Press ESC ot q to stop..." << endl;
+             << "Press r to START recording" << endl
+             << "Press t to STOP recording" << endl
+             << "Press ESC or q to exit..." << endl;
         while (manager.IsRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }

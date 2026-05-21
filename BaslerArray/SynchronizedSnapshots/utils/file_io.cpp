@@ -9,6 +9,7 @@
 
 #include <ctime>
 #include <iomanip>
+#include <fstream>
 #include <sstream>
 
 using namespace Pylon;
@@ -65,7 +66,10 @@ void SaveImage(const Frame& f, const std::string& baseDir) {
 
         // Build filename: camId_timestamp_frameId.png
         std::ostringstream name;
-        name << f.cameraId << "_" << f.timestamp << "_" << f.frameId << ".png";
+        name << f.cameraId << "_" 
+             << f.timestamp << "_" 
+             << f.frameId << ".png";
+
         fs::path filepath = dir / name.str();
 
         // Save via Pylon ImagePersistence
@@ -77,5 +81,49 @@ void SaveImage(const Frame& f, const std::string& baseDir) {
     }
     catch (const GenericException& e) {
         std::cerr << "Save error: " << e.GetDescription() << std::endl;
+    }
+}
+
+// Save raw image
+void SaveRaw(const Frame& f, const std::string& baseDir)
+{
+    try
+    {
+        // Create per-camera directory: output/01/, output/02/, ...
+        fs::path dir = fs::path(baseDir) / f.cameraId;
+        fs::create_directories(dir);
+
+        // Build filename: camId_timestamp_frameId.raw
+        std::ostringstream name;
+        name << f.cameraId << "_"
+             << f.timestamp << "_"
+             << f.frameId << ".raw";
+
+        fs::path filepath = dir / name.str();
+
+        // Get image data from Pylon grab result
+        const void* buffer = f.grab->GetBuffer();
+        size_t size = f.grab->GetImageSize();
+
+        // Write binary file
+        std::ofstream file(filepath, std::ios::binary);
+
+        if (!file.is_open())
+        {
+            std::cerr << "Failed to open file: " << filepath << std::endl;
+            return;
+        }
+
+        file.write(reinterpret_cast<const char*>(buffer),
+            static_cast<std::streamsize>(size));
+
+    }
+    catch (const Pylon::GenericException& e)
+    {
+        std::cerr << "SaveRaw Pylon error: " << e.GetDescription() << std::endl;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "SaveRaw error: " << e.what() << std::endl;
     }
 }

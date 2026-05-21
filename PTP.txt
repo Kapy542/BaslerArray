@@ -1,0 +1,14 @@
+Ubuntu PTP set up
+
+linuxptp: ptp4l, phc2sys
+
+
+ptp4l: Configures the NIC’s hardware clock (PHC) with high priority so that the interface can act as the PTP master.
+phc2sys: Synchronizes two clocks within the system; in this case, it aligns the system clock with the NIC’s hardware clock (PHC).
+
+
+	Ubuntu
+	  |
+	------
+  |       |
+NIC1	 NIC2

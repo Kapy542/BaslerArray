@@ -13,3 +13,5 @@ void remove_rec_folder(std::string path);
 void remove_if_empty(std::string path);
 
 void SaveImage(const Frame& f, const std::string& baseDir);
+
+void SaveRaw(const Frame& f, const std::string& baseDir);

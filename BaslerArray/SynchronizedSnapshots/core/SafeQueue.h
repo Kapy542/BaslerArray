@@ -48,4 +48,9 @@ public:
         q.pop();
         return true;
     }
+
+    size_t size() {
+        std::lock_guard<std::mutex> lock(m);
+        return q.size();
+    }
 };

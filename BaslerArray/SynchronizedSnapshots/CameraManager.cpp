@@ -14,6 +14,7 @@
 #include "core/Frame.h"
 #include "core/SafeQueue.h"
 #include "utils/file_io.h"
+#include "utils/Log.h"
 
 #include <nlohmann/json.hpp>
 
@@ -22,14 +23,14 @@ using namespace GenApi;
 using namespace std;
 using json = nlohmann::json;
 
-const int PREVIEW_EVERY_N = 1;
-const int FPS = 1;
+const int PREVIEW_EVERY_N = 4;
+const int FPS = 4;
 const int period = 1000 / FPS;
-
+/*
 void Log(const string& msg) {
     std::cout << "[" << get_time_string() << "] " << msg << std::endl;
 }
-
+*/
 
 // ========================= CAMERA MANAGER =========================
 
@@ -83,7 +84,7 @@ void CameraManager::DiscoverAndInit(const map<string, string>& order) {
                 cameras.emplace_back(
                     make_unique<CameraNode>(factory.CreateDevice(dev), id));
                 found = true;
-                cout << "Connected to camera: " << id << " : " << serial << endl;
+                std::cout << "Connected to camera: " << id << " : " << serial << std::endl;
                 break;
             }
         }
@@ -95,7 +96,7 @@ void CameraManager::DiscoverAndInit(const map<string, string>& order) {
         cam->camera.Open();
         // cam->EnablePTP();
     }
-    cout << "Connected to " << cameras.size() << " cameras" << endl << endl;
+    std::cout << "Connected to " << cameras.size() << " cameras" << std::endl << std::endl;
 }
 
 void CameraManager::ConfigureAll(const CameraConfig& cfg) {
@@ -103,7 +104,7 @@ void CameraManager::ConfigureAll(const CameraConfig& cfg) {
         cam->Configure(cfg);
     }
 
-    cout << "Cameras configured." << endl << endl;
+    std::cout << "Cameras configured." << std::endl << std::endl;
 }
 
 void CameraManager::SetupActionCommandTrigger() {
@@ -115,12 +116,12 @@ void CameraManager::SetupActionCommandTrigger() {
         cam->ConfigureActionTrigger(deviceKey, groupKey, groupMask);
     }
 
-    cout << "Action command trigger configured." << endl << endl;
+    std::cout << "Action command trigger configured." << std::endl << std::endl;
 }
 
 // TODO: this!
 void CameraManager::WaitForPtpSync() {
-    cout << "Waiting for PTP synchronization..." << endl;
+    std::cout << "Waiting for PTP synchronization..." << std::endl;
 
     for (auto& cam : cameras) {
         cam->EnablePTP();
@@ -141,7 +142,7 @@ void CameraManager::WaitForPtpSync() {
 
             auto status = CEnumerationPtr(n.GetNode("GevIEEE1588Status"))->ToString();
 
-            cout << "Cam " << cam->logicalId << " PTP: " << status << endl;
+            std::cout << "Cam " << cam->logicalId << " PTP: " << status << std::endl;
 
             if (status == "Master") { master_count += 1; }
 
@@ -155,7 +156,7 @@ void CameraManager::WaitForPtpSync() {
     }
 
     // TODO: Wait for clocks to converge
-    cout << "PTP synchronized across all cameras." << endl;
+    std::cout << "PTP synchronized across all cameras." << std::endl;
     for (auto& cam : cameras) {
         INodeMap& n = cam->camera.GetNodeMap();
 
@@ -167,7 +168,7 @@ void CameraManager::WaitForPtpSync() {
 
         int offsetFromMaster = CIntegerPtr(n.GetNode("GevIEEE1588OffsetFromMaster"))->GetValue();
 
-        cout << "Cam " << cam->logicalId << " PTP: " << status << " Offset: " << offsetFromMaster << endl;
+        std::cout << "Cam " << cam->logicalId << " PTP: " << status << " Offset: " << offsetFromMaster << std::endl;
     }
 }
 
@@ -237,7 +238,7 @@ void CameraManager::FireActionCommand() {
         0xFFFFFFFF      // group mask
     );
 
-    cout << "Action command fired." << endl;
+    //cout << "Action command fired." << endl;
 }
 
 bool CameraManager::IsRunning() const {
@@ -249,6 +250,15 @@ void CameraManager::RequestSave() {
     saveTriggerId = triggerId.load() + 1;
 }
 
+void CameraManager::StartRecording() {
+    recording = true;
+    std::cout << "Recording started" << std::endl;
+}
+
+void CameraManager::StopRecording() {
+    recording = false;
+    std::cout << "Recording stopped" << std::endl;
+}
 
 // ============================ THREADS =============================
 
@@ -287,9 +297,16 @@ void CameraManager::GrabLoop(CameraNode* cam) {
                     res
                 };
 
+                
+                // A single image with requested index is written to the disk
                 // res->GetBlockID() should match corresponding triggerId?
                 if (res->GetBlockID() == saveTriggerId.load()) {
                     //Log(cam->logicalId + " found matching ID...");
+                    frameQueue.push(f);
+                }
+                
+
+                if (recording) {
                     frameQueue.push(f);
                 }
 
@@ -308,14 +325,23 @@ void CameraManager::ConsumeLoop() {
 
     // Even if stopped, goes through whole queue before exiting
     while (frameQueue.pop(f)) {
-        
+        /*
         Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
             " Timestamp " + to_string(f.timestamp) + "\n");
-
-        SaveImage(f, outputDir);
+        */
+        if (f.frameId % 10 == 0)
+        {
+            Log("Queue size: " + std::to_string(frameQueue.size()));
+        }
+        if (recording) {
+            SaveRaw(f, outputDir);
+        }
+        else {
+            SaveImage(f, outputDir);
+        }
     }
 
-    cout << "Consumer thread exiting..." << endl;
+    std::cout << "Consumer thread exiting..." <<std:: endl;
 }
 
 void CameraManager::PreviewLoop() {
@@ -396,7 +422,7 @@ void CameraManager::PreviewLoop() {
                 cv::resize(grid, display, cv::Size(), scale, scale);
             }
 
-            cv::imshow("Preview   w: write   ESC/q: exit", display);
+            cv::imshow("Preview   w: write   r: start   t: stop   ESC/q: exit", display);
             int key = cv::waitKey(1);
 
             if (key == 'q' || key == 27) { // ESC
@@ -405,6 +431,12 @@ void CameraManager::PreviewLoop() {
             }
             else if (key == 'w') {
                 RequestSave();              
+            }
+            else if (key == 'r') {
+                StartRecording();
+            }
+            else if (key == 't') {
+                StopRecording();
             }
 
             buffer.erase(f.frameId);
@@ -418,5 +450,5 @@ void CameraManager::PreviewLoop() {
 
     cv::destroyAllWindows();
 
-    cout << "Preview thread exiting..." << endl;
+    std::cout << "Preview thread exiting..." << std::endl;
 }
