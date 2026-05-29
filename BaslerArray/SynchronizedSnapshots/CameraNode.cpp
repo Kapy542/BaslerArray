@@ -54,6 +54,7 @@ void CameraNode::Configure(const CameraConfig& cfg) {
 
     // TODO: Change to 9000
     TrySetInt(n, "GevSCPSPacketSize", 1500);
+    TrySetInt(n, "GevSCPD", 1500);
 
     cout << "Configured camera " << logicalId << endl;
 }

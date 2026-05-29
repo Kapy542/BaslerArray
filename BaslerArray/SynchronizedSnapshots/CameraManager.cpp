@@ -23,8 +23,8 @@ using namespace GenApi;
 using namespace std;
 using json = nlohmann::json;
 
-const int PREVIEW_EVERY_N = 4;
-const int FPS = 4;
+const int PREVIEW_EVERY_N = 10;
+const int FPS = 10;
 const int period = 1000 / FPS;
 /*
 void Log(const string& msg) {
@@ -232,10 +232,12 @@ void CameraManager::FireActionCommand() {
 
     //std::cout << "Trigger cameras!" << std::endl;
 
+    // Issue action command to all interfaces
     pTL->IssueActionCommand(
         1,              // device key
         1,              // group key
-        0xFFFFFFFF      // group mask
+        0xFFFFFFFF,     // group mask
+        "255.255.255.255"
     );
 
     //cout << "Action command fired." << endl;
@@ -276,7 +278,7 @@ void CameraManager::GrabLoop(CameraNode* cam) {
 
     while (running && cam->camera.IsGrabbing()) {
         //Log(cam->logicalId + " Waiting image...");
-        if (cam->camera.RetrieveResult(50000, res, TimeoutHandling_ThrowException)) {
+        if (cam->camera.RetrieveResult(5000, res, TimeoutHandling_ThrowException)) {
 
             if (res->GrabSucceeded()) {
 
@@ -314,6 +316,13 @@ void CameraManager::GrabLoop(CameraNode* cam) {
                 if (f.frameId % PREVIEW_EVERY_N == 0) {
                     previewQueue.push(f);
                 }
+            }
+            else
+            {
+                std::cerr << "Grab failed. "
+                    << "Error code: " << res->GetErrorCode()
+                    << ", Description: " << res->GetErrorDescription()
+                    << std::endl;
             }
         }
     }

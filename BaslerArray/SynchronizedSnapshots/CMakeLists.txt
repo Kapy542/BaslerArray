@@ -23,6 +23,7 @@ add_executable(SynchronizedSnapshots
 	CameraNode.cpp
 	configs/config_loader.cpp
 	utils/file_io.cpp
+	utils/Log.cpp
 )
 
 target_include_directories(SynchronizedSnapshots PRIVATE 
