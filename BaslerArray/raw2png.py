@@ -63,12 +63,26 @@ def process_folder(input_dir, output_dir):
 # MAIN
 # -----------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Convert RAW Bayer images to PNG")
-    parser.add_argument("input_path", type=str, help="Path to RAW dataset folder")
+    parser = argparse.ArgumentParser(
+        description="Convert RAW Bayer images to PNG"
+    )
+
+    parser.add_argument(
+        "take_name",
+        type=str,
+        help="Name of the take inside the input folder",
+    )
+
+    parser.add_argument(
+        "--input-folder",
+        type=str,
+        default="./SynchronizedSnapshots/build/recordings",
+        help="Base recordings folder (default: ./recordings)",
+    )
 
     args = parser.parse_args()
 
-    input_path = Path(args.input_path)
+    input_path = Path(args.input_folder) / args.take_name
 
     if not input_path.exists():
         print(f"Input path does not exist: {input_path}")
