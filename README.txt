@@ -15,5 +15,5 @@ cp -r ../configs ./configs
              << "Press ESC or q to exit..." << endl;
 
 2. After exiting, the images are written in "./recordings/take_name/cam_idx/"
-3. In /BaslerArray Run: ' python ./raw2png.py "path_to_build/recordings/take_name" '
+3. In /BaslerArray Run: ' python ./raw2png.py "take_name" '
 	to convert binary image files into pngs
