@@ -23,8 +23,8 @@ using namespace GenApi;
 using namespace std;
 using json = nlohmann::json;
 
-const int PREVIEW_EVERY_N = 10;
-const int FPS = 10;
+const int PREVIEW_EVERY_N = 2;
+const int FPS = 2;
 const int period = 1000 / FPS;
 /*
 void Log(const string& msg) {
@@ -136,11 +136,8 @@ void CameraManager::WaitForPtpSync() {
         for (auto& cam : cameras) {
             INodeMap& n = cam->camera.GetNodeMap();
 
-            // TODO: Does it really matter which one to use?
-            //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
-            //auto status = CEnumerationPtr(n.GetNode("GevIEEE1588StatusLatched"))->ToString();
-
-            auto status = CEnumerationPtr(n.GetNode("GevIEEE1588Status"))->ToString();
+            CCommandPtr(n.GetNode("GevIEEE1588DataSetLatch"))->Execute();
+            auto status = CEnumerationPtr(n.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
             std::cout << "Cam " << cam->logicalId << " PTP: " << status << std::endl;
 
@@ -156,20 +153,30 @@ void CameraManager::WaitForPtpSync() {
     }
 
     // TODO: Wait for clocks to converge
-    std::cout << "PTP synchronized across all cameras." << std::endl;
-    for (auto& cam : cameras) {
-        INodeMap& n = cam->camera.GetNodeMap();
+    allSynced = false;
+    int64_t maxOffset = 0;
+    int i = 0;
 
-        // TODO: Does it really matter which one to use?
-        //CCommandPtr(nodemap.GetNode("GevIEEE1588DataSetLatch"))->Execute();
-        //auto status = CEnumerationPtr(nodemap.GetNode("GevIEEE1588StatusLatched"))->ToString();
+    while (!allSynced) {
+        maxOffset = 0;
+        for (auto& cam : cameras) {
+            INodeMap& n = cam->camera.GetNodeMap();
 
-        auto status = CEnumerationPtr(n.GetNode("GevIEEE1588Status"))->ToString();
+            CCommandPtr(n.GetNode("GevIEEE1588DataSetLatch"))->Execute();
+            auto status = CEnumerationPtr(n.GetNode("GevIEEE1588StatusLatched"))->ToString();
 
-        int offsetFromMaster = CIntegerPtr(n.GetNode("GevIEEE1588OffsetFromMaster"))->GetValue();
+            int64_t offsetFromMaster = CIntegerPtr(n.GetNode("GevIEEE1588OffsetFromMaster"))->GetValue();
 
-        std::cout << "Cam " << cam->logicalId << " PTP: " << status << " Offset: " << offsetFromMaster << std::endl;
+            std::cout << "Cam " << cam->logicalId << " PTP: " << status << " Offset: " << offsetFromMaster << std::endl;
+
+            std::max(maxOffset, std::abs(offsetFromMaster));
+        }
+        if (maxOffset < 5000) { i++; } // If less than 5 us / 5 000 ns
+        else { i = 0; }
+        if (i>5) { allSynced = true; } // If less than 5 us / 5 000 ns more than 5 times
+        this_thread::sleep_for(chrono::milliseconds(500));
     }
+    std::cout << "PTP synchronized across all cameras." << std::endl;
 }
 
 void CameraManager::Start() {

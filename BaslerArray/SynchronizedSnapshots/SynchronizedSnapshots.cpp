@@ -81,6 +81,8 @@ int main() {
     remove_if_empty(out_folder);
 
     PylonTerminate();
+
+    std::getchar();
     return 0;
 }
 

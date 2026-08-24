@@ -79,6 +79,7 @@ void CameraNode::ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, u
 // TODO: this!
 void CameraNode::EnablePTP() {
     INodeMap& n = camera.GetNodeMap();
+    /*
     if (IsWritable(n.GetNode("PtpEnable"))) {
         cout << "Set PtpEnable" << endl;
         CBooleanPtr(n.GetNode("PtpEnable"))->SetValue(true);
@@ -87,6 +88,9 @@ void CameraNode::EnablePTP() {
         cout << "Set GevIEEE1588" << endl;
         CBooleanPtr(n.GetNode("GevIEEE1588"))->SetValue(true);
     }
+    */
+    TrySetBool(n, "PtpEnable", true);
+    TrySetBool(n, "GevIEEE1588", true);
 }
 
 
