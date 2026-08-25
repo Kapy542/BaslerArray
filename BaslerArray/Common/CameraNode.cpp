@@ -76,20 +76,31 @@ void CameraNode::ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, u
     TrySetInt(n, "ActionGroupMask", groupMask);
 }
 
+void CameraNode::ConfigureSynchronousFreeRun(float fps) {
+    INodeMap& n = camera.GetNodeMap();
+
+    TrySetEnum(n, "AcquisitionMode", "Continuous");
+    TrySetEnum(n, "TriggerSelector", "FrameStart");
+    TrySetEnum(n, "TriggerMode", "Off");
+
+    // Let the free run start immediately without a specific start time
+    TrySetInt(n, "SyncFreeRunTimerStartTimeLow", 0);
+    TrySetInt(n, "SyncFreeRunTimerStartTimeHigh", 0);
+
+    // Specify a trigger rate of 30 frames per second
+    TrySetFloat(n, "SyncFreeRunTimerTriggerRateAbs", fps);
+
+    // Apply the changes
+    TryExecuteCommand(n, "SyncFreeRunTimerUpdate");
+
+    // Enable Synchronous Free Run
+    TrySetBool(n, "SyncFreeRunTimerEnable", true);
+}
+
 // TODO: this!
 void CameraNode::EnablePTP() {
     INodeMap& n = camera.GetNodeMap();
-    /*
-    if (IsWritable(n.GetNode("PtpEnable"))) {
-        cout << "Set PtpEnable" << endl;
-        CBooleanPtr(n.GetNode("PtpEnable"))->SetValue(true);
-    }
-    if (IsWritable(n.GetNode("GevIEEE1588"))) {
-        cout << "Set GevIEEE1588" << endl;
-        CBooleanPtr(n.GetNode("GevIEEE1588"))->SetValue(true);
-    }
-    */
-    TrySetBool(n, "PtpEnable", true);
+
     TrySetBool(n, "GevIEEE1588", true);
 }
 
@@ -157,6 +168,18 @@ bool CameraNode::TrySetBool(INodeMap & n, const string & name, bool value) {
         }
 
         node->SetValue(value);
+        return true;
+    }
+    catch (const GenericException& e) {
+        cerr << "[ERROR] " << name << ": " << e.GetDescription() << endl;
+        return false;
+    }
+}
+
+bool CameraNode::TryExecuteCommand(INodeMap& n, const string& name) {
+    try {
+        CCommandPtr node(n.GetNode(name.c_str()));
+        node->Execute();
         return true;
     }
     catch (const GenericException& e) {

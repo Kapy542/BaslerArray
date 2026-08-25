@@ -1,9 +1,9 @@
 #include "CameraManager.h"
-
+/*
 #include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
 #include <pylon/gige/GigETransportLayer.h>
-
+*/
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -70,6 +70,16 @@ map<string, string> CameraManager::LoadCameraOrder(const string& filename) {
     return order;
 }
 
+void CameraManager::Initialize(const CameraConfig& cfg, const map<string, string>& order) {
+    DiscoverAndInit(order);
+    ConfigureAll(cfg);
+
+    // Get the GigE transport layer.
+    // We'll need it later to issue the action commands.
+    CTlFactory& tlFactory = CTlFactory::GetInstance();
+    pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
+}
+
 void CameraManager::DiscoverAndInit(const map<string, string>& order) {
     CTlFactory& factory = CTlFactory::GetInstance();
     DeviceInfoList_t devices;
@@ -94,7 +104,6 @@ void CameraManager::DiscoverAndInit(const map<string, string>& order) {
 
     for (auto& cam : cameras) {
         cam->camera.Open();
-        // cam->EnablePTP();
     }
     std::cout << "Connected to " << cameras.size() << " cameras" << std::endl << std::endl;
 }
@@ -105,18 +114,6 @@ void CameraManager::ConfigureAll(const CameraConfig& cfg) {
     }
 
     std::cout << "Cameras configured." << std::endl << std::endl;
-}
-
-void CameraManager::SetupActionCommandTrigger() {
-    const uint32_t deviceKey = 1;
-    const uint32_t groupKey = 1;
-    const uint32_t groupMask = 0xFFFFFFFF;
-
-    for (auto& cam : cameras) {
-        cam->ConfigureActionTrigger(deviceKey, groupKey, groupMask);
-    }
-
-    std::cout << "Action command trigger configured." << std::endl << std::endl;
 }
 
 // TODO: this!
@@ -179,7 +176,28 @@ void CameraManager::WaitForPtpSync() {
     std::cout << "PTP synchronized across all cameras." << std::endl;
 }
 
-void CameraManager::Start() {
+void CameraManager::SetupActionCommandTrigger() {
+    const uint32_t deviceKey = 1;
+    const uint32_t groupKey = 1;
+    const uint32_t groupMask = 0xFFFFFFFF;
+
+    for (auto& cam : cameras) {
+        cam->ConfigureActionTrigger(deviceKey, groupKey, groupMask);
+    }
+
+    std::cout << "Action command trigger configured." << std::endl << std::endl;
+}
+
+void CameraManager::SetupSynchronousFreeRun(float fps) {
+    for (auto& cam : cameras)
+    {
+        cam->ConfigureSynchronousFreeRun(fps);
+    }
+
+    Log("Synchronous Free Run configured.");
+}
+
+void CameraManager::Start(AcquisitionMode mode) {
     running = true;
 
     for (auto& cam : cameras)
@@ -193,8 +211,10 @@ void CameraManager::Start() {
     for (auto& cam : cameras)
         grabThreads.emplace_back(&CameraManager::GrabLoop, this, cam.get());
 
-    // Trigger thread
-    triggerThread = thread(&CameraManager::TriggerLoop, this);
+    // Create a thread to trigger if we are not using free run
+    if (mode == AcquisitionMode::SoftwareTriggered) {
+        triggerThread = thread(&CameraManager::TriggerLoop, this);
+    }
 }
 
 void CameraManager::Stop() {
@@ -234,8 +254,8 @@ void CameraManager::Stop() {
 void CameraManager::FireActionCommand() {
     // Get the GigE transport layer.
     // We'll need it later to issue the action commands.
-    CTlFactory& tlFactory = CTlFactory::GetInstance();
-    IGigETransportLayer* pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
+    //CTlFactory& tlFactory = CTlFactory::GetInstance();
+    //IGigETransportLayer* pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
 
     //std::cout << "Trigger cameras!" << std::endl;
 
@@ -248,6 +268,43 @@ void CameraManager::FireActionCommand() {
     );
 
     //cout << "Action command fired." << endl;
+}
+
+void CameraManager::FireScheduledActionCommand(uint64_t actionTime) {
+    // Get the GigE transport layer.
+    // We'll need it later to issue the action commands.
+    //CTlFactory& tlFactory = CTlFactory::GetInstance();
+    //IGigETransportLayer* pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
+
+    //std::cout << "Trigger cameras!" << std::endl;
+
+    // Issue action command to all interfaces
+    pTL->IssueScheduledActionCommand(
+        1,              // device key
+        1,              // group key
+        0xFFFFFFFF,     // group mask
+        actionTime,
+        "255.255.255.255"
+    );
+
+    //cout << "Scheduled action command fired." << endl;
+}
+
+void CameraManager::StartScheduledAcquisition() {
+    auto& camera = cameras.front()->camera;
+    INodeMap& nodeMap = camera.GetNodeMap();
+
+    // Get current PTP timestamp
+    CCommandPtr timestampLatch(nodeMap.GetNode("GevTimestampControlLatch"));
+    timestampLatch->Execute();
+
+    int64_t currentTimestamp = CIntegerPtr(nodeMap.GetNode("GevTimestampValue"))->GetValue();
+
+    // Start 1 second from now
+    constexpr int64_t START_DELAY_NS = 1'000'000'000;
+    int64_t actionTime = currentTimestamp + START_DELAY_NS;
+
+    FireScheduledActionCommand(actionTime);
 }
 
 bool CameraManager::IsRunning() const {
@@ -268,6 +325,16 @@ void CameraManager::StopRecording() {
     recording = false;
     std::cout << "Recording stopped" << std::endl;
 }
+void CameraManager::ToggleRecording() {
+    if (recording) {
+        recording = false;
+        std::cout << "Recording stopped" << std::endl;
+    }
+    else {
+        recording = true;
+        std::cout << "Recording started" << std::endl;
+    }
+}
 
 // ============================ THREADS =============================
 
@@ -278,6 +345,7 @@ void CameraManager::TriggerLoop() {
         std::this_thread::sleep_for(std::chrono::milliseconds(period));
         triggerId++;
     }
+    Log("Trigger loop exiting...");
 }
 
 void CameraManager::GrabLoop(CameraNode* cam) {
@@ -438,7 +506,18 @@ void CameraManager::PreviewLoop() {
                 cv::resize(grid, display, cv::Size(), scale, scale);
             }
 
-            cv::imshow("Preview   w: write   r: start   t: stop   ESC/q: exit", display);
+            if (recording) {
+                // Draw recording indicator
+                cv::rectangle(
+                    display,
+                    cv::Point(0, 0),
+                    cv::Point(display.cols - 1, display.rows - 1),
+                    cv::Scalar(0, 0, 255),  // Red in BGR
+                    5                         // Thickness
+                );
+            }
+
+            cv::imshow("Preview   w: write 1 frame   r: toggle recording   ESC/q: exit", display);
             int key = cv::waitKey(1);
 
             if (key == 'q' || key == 27) { // ESC
@@ -449,12 +528,13 @@ void CameraManager::PreviewLoop() {
                 RequestSave();              
             }
             else if (key == 'r') {
-                StartRecording();
+                ToggleRecording();
             }
+            /*
             else if (key == 't') {
                 StopRecording();
             }
-
+            */
             buffer.erase(f.frameId);
         }
 

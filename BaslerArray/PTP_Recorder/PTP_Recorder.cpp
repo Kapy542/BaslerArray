@@ -48,22 +48,23 @@ int main() {
         CameraConfig cfg = LoadConfig("configs/camera_config.json");
         map<string, string> order = manager.LoadCameraOrder("configs/camera_order.json");
 
-        manager.DiscoverAndInit(order);
-        manager.ConfigureAll(cfg);
+        manager.Initialize(cfg, order);
+        //manager.DiscoverAndInit(order);
+        //manager.ConfigureAll(cfg);
 
-        // 1. Wait for PTP sync to decide master/slave relationship TODO: and offset to settle
+        // 1. Wait for PTP sync to decide master/slave relationship
         manager.WaitForPtpSync();
 
-        // 2. Setup trigger
-        manager.SetupActionCommandTrigger();
+        // 2. Setup trigger / SynchronousFreeRun
+        // manager.SetupActionCommandTrigger();
+        manager.SetupSynchronousFreeRun(2.0);
 
         // x. Start grabbing
-        manager.Start();
+        manager.Start(AcquisitionMode::PtpScheduled);
 
         // Manager runs until OpenCV window receives stop command
-        cout << "Press w to write image" << endl
-            << "Press r to START recording" << endl
-            << "Press t to STOP recording" << endl
+        cout << "Press w to write 1 frame" << endl
+            << "Press r to TOGGLE recording" << endl
             << "Press ESC or q to exit..." << endl;
         while (manager.IsRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
