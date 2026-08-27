@@ -3,23 +3,32 @@
 #include <string>
 #include <vector>
 
-struct BalanceRatio {
-    std::string selector;
-    int balanceRatioRaw;
+struct WhiteBalanceConfig
+{
+    std::string mode;
+    int red;
+    int green;
+    int blue;
 };
 
-struct CameraConfig {
-    int width = 0;
-    int height = 0;
-    double exposure = 0.0;
-    double gain = 0.0;
+struct CameraConfig
+{
+    std::string serialNumber;
 
-    std::string lightSourceSelector;
+    int width;
+    int height;
+    std::string pixelFormat;
 
-    struct BalanceRatio {
-        std::string selector;
-        int balanceRatioRaw;
-    };
+    bool reverseX;
+    bool reverseY;
 
-    std::vector<BalanceRatio> balanceRatios;
+    double exposureUs;
+    double gain;
+    std::string exposureAuto;
+    std::string gainAuto;
+
+    WhiteBalanceConfig whiteBalance;
+
+    double fps;
+    int packetSize;
 };

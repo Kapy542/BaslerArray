@@ -14,7 +14,7 @@
 
 using namespace Pylon;
 
-std::string get_time_string()
+std::string getTimeString()
 {
     std::time_t rawtime = std::time(nullptr);
     std::tm now;
@@ -30,7 +30,7 @@ std::string get_time_string()
     return oss.str();
 }
 
-bool create_rec_folder(std::string path)
+bool createRecFolder(std::string path)
 {
     bool success;
     std::filesystem::create_directories(path);
@@ -40,12 +40,12 @@ bool create_rec_folder(std::string path)
     return success;
 }
 
-void remove_rec_folder(std::string path)
+void removeRecFolder(std::string path)
 {
     std::filesystem::remove_all(path);
 }
 
-void remove_if_empty(std::string path)
+void removeIfEmpty(std::string path)
 {
     if (std::filesystem::is_empty(path)) {
         std::filesystem::remove_all(path);

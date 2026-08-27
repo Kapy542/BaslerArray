@@ -4,13 +4,13 @@
 
 #include "../core/Frame.h"
 
-std::string get_time_string();
+std::string getTimeString();
 
-bool create_rec_folder(std::string path);
+bool createRecFolder(std::string path);
 
-void remove_rec_folder(std::string path);
+void removeRecFolder(std::string path);
 
-void remove_if_empty(std::string path);
+void removeIfEmpty(std::string path);
 
 void SaveImage(const Frame& f, const std::string& baseDir);
 

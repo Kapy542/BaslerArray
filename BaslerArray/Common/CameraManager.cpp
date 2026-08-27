@@ -41,38 +41,12 @@ CameraManager::~CameraManager() {
     Stop();
 }
 
-map<string, string> CameraManager::LoadCameraOrder(const string& filename) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        throw runtime_error("Failed to open camera order file: " + filename);
-    }
+void CameraManager::Initialize(
+        const std::map<std::string, std::string>& cameraMapping, 
+        const map<string, CameraConfig>& cameraConfigs) {
 
-    json j;
-    file >> j;
-
-    if (!j.is_object()) {
-        throw runtime_error("Camera order JSON must be an object { \"01\": \"serial\", ... }");
-    }
-
-    map<string, string> order;
-
-    for (const auto& item : j.items()) {
-        const string& logicalId = item.key();
-
-        if (!item.value().is_string()) {
-            throw runtime_error("Invalid serial for camera " + logicalId);
-        }
-
-        string serial = item.value().get<string>();
-        order[logicalId] = serial;
-    }
-
-    return order;
-}
-
-void CameraManager::Initialize(const CameraConfig& cfg, const map<string, string>& order) {
-    DiscoverAndInit(order);
-    ConfigureAll(cfg);
+    DiscoverAndInit(cameraMapping);
+    ConfigureAll(cameraConfigs);
 
     // Get the GigE transport layer.
     // We'll need it later to issue the action commands.
@@ -80,14 +54,14 @@ void CameraManager::Initialize(const CameraConfig& cfg, const map<string, string
     pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
 }
 
-void CameraManager::DiscoverAndInit(const map<string, string>& order) {
+void CameraManager::DiscoverAndInit(const map<string, string>& cameraMapping) {
     CTlFactory& factory = CTlFactory::GetInstance();
     DeviceInfoList_t devices;
 
     if (factory.EnumerateDevices(devices) == 0)
         throw runtime_error("No cameras found");
 
-    for (auto& [id, serial] : order) {
+    for (auto& [id, serial] : cameraMapping) {
         bool found = false;
         for (auto& dev : devices) {
             if (string(dev.GetSerialNumber()) == serial) {
@@ -108,15 +82,29 @@ void CameraManager::DiscoverAndInit(const map<string, string>& order) {
     std::cout << "Connected to " << cameras.size() << " cameras" << std::endl << std::endl;
 }
 
-void CameraManager::ConfigureAll(const CameraConfig& cfg) {
-    for (auto& cam : cameras) {
-        cam->Configure(cfg);
-    }
+void CameraManager::ConfigureAll(
+    const std::map<std::string, CameraConfig>& cameraConfigs)
+{
+    for (auto& cam : cameras)
+    {
+        auto it = cameraConfigs.find(cam->logicalId);
 
-    std::cout << "Cameras configured." << std::endl << std::endl;
+        if (it == cameraConfigs.end())
+        {
+            std::cerr << "No configuration found for camera: "
+                << cam->logicalId << std::endl;
+            continue;
+        }
+
+        const CameraConfig& config = it->second;
+
+        cam->Configure(config);
+
+        std::cout << "Configured camera: " << cam->logicalId << std::endl;
+    }
+    std::cout << std::endl;
 }
 
-// TODO: this!
 void CameraManager::WaitForPtpSync() {
     std::cout << "Waiting for PTP synchronization..." << std::endl;
 
@@ -149,7 +137,7 @@ void CameraManager::WaitForPtpSync() {
         this_thread::sleep_for(chrono::milliseconds(500));
     }
 
-    // TODO: Wait for clocks to converge
+    // Wait for clocks to converge
     allSynced = false;
     int64_t maxOffset = 0;
     int i = 0;

@@ -1,14 +1,24 @@
 {
   "width": 1920,
   "height": 1200,
-  "exposure": 10000.0,
-  "gain": 100,
+  "pixelFormat": "BayerRG8",
   
-  "lightSourceSelector": "Custom",
-  "balanceRatioSelector": [
-      { "selector": "Red", "balanceRatioRaw": 105 },
-      { "selector": "Green", "balanceRatioRaw": 64 },
-      { "selector": "Blue", "balanceRatioRaw": 159 }
-    ]
+  "reverseX": false,
+  "reverseY": false,
+  
+  "exposureUs": 10000.0,
+  "gain": 100,
+  "exposureAuto": "Off",
+  "gainAuto": "Off", 
+  
+  "whiteBalance": {
+	  "mode": "Custom",
+	  "red": 105,
+	  "green": 64,
+	  "blue": 159
+	},
+	
+  "fps": 2.0,
+  "packetSize": 1500
 }
   

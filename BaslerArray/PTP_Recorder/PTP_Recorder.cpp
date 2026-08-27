@@ -39,27 +39,32 @@ int main() {
     try {
         // Create new recording folder
         std::string take_name;
-        take_name = get_time_string();
+        take_name = getTimeString();
         out_folder = out_folder + take_name + "/";
-        create_rec_folder(out_folder);
+        createRecFolder(out_folder);
 
         CameraManager manager(out_folder);
 
-        CameraConfig cfg = LoadConfig("configs/camera_config.json");
-        map<string, string> order = manager.LoadCameraOrder("configs/camera_order.json");
+        // 1. Load which physical cameras are used and their logical names
+        map<string, string> cameraMapping = LoadCameraMapping("configs/camera_mapping.json");
 
-        manager.Initialize(cfg, order);
-        //manager.DiscoverAndInit(order);
-        //manager.ConfigureAll(cfg);
+        // 2. Load default camera configuration
+        CameraConfig defaultConfig = LoadCameraConfig("configs/camera_config.json");
 
-        // 1. Wait for PTP sync to decide master/slave relationship
+        // 3. Build final configuration for every camera
+        map<string, CameraConfig> cameraConfigs = BuildCameraConfigs(cameraMapping, defaultConfig);
+
+        // 4. Find and initialize cameras using their individual configurations
+        manager.Initialize(cameraMapping, cameraConfigs);
+
+        // 5. Wait for PTP synchronization
         manager.WaitForPtpSync();
 
-        // 2. Setup trigger / SynchronousFreeRun
+        // 6. Setup trigger / SynchronousFreeRun
         // manager.SetupActionCommandTrigger();
-        manager.SetupSynchronousFreeRun(2.0);
+        manager.SetupSynchronousFreeRun();
 
-        // x. Start grabbing
+        // 7. Start grabbing
         manager.Start(AcquisitionMode::PtpScheduled);
 
         // Manager runs until OpenCV window receives stop command
@@ -78,7 +83,7 @@ int main() {
         // TODO: Remove the recording folder?
     }
 
-    remove_if_empty(out_folder);
+    removeIfEmpty(out_folder);
 
     PylonTerminate();
 

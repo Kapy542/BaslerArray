@@ -47,13 +47,13 @@ public:
     CameraManager(const std::string& dir);
     ~CameraManager();
 
-    std::map<std::string, std::string> LoadCameraOrder(const std::string& filename);
+    void Initialize(
+        const std::map<std::string, std::string>& cameraMapping, 
+        const map<string, CameraConfig>& cameraConfigs);
 
-    void Initialize(const CameraConfig& cfg, const map<string, string>& order);
+    void DiscoverAndInit(const  std::map<std::string, std::string>& cameraMapping);
 
-    void DiscoverAndInit(const  std::map<std::string, std::string>& order);
-
-    void ConfigureAll(const CameraConfig& cfg);
+    void ConfigureAll(const  std::map<std::string, CameraConfig>& cameraConfigs);
 
     void WaitForPtpSync();
 

@@ -1,0 +1,19 @@
+{
+  "width": 1920,
+  "height": 1200,
+  "reverseX": false,
+  "reverseY": false,
+  
+  "exposure": 10000.0,
+  "gain": 100,
+  "exposureAuto": "Off",
+  "gainAuto": "Off", 
+  
+  "lightSourceSelector": "Custom",
+  "balanceRatioSelector": [
+      { "selector": "Red", "balanceRatioRaw": 105 },
+      { "selector": "Green", "balanceRatioRaw": 64 },
+      { "selector": "Blue", "balanceRatioRaw": 159 }
+    ]
+}
+  
