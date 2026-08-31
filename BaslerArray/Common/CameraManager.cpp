@@ -39,6 +39,7 @@ void Log(const string& msg) {
 // ============================= SETUP ==============================
 
 CameraManager::CameraManager() {}
+
 CameraManager::~CameraManager() {
     Stop();
 }
@@ -110,7 +111,7 @@ void CameraManager::ConfigureAll(
 
         cam->Configure(config);
 
-        std::cout << "Configured camera: " << cam->logicalId << std::endl;
+        //std::cout << "Configured camera: " << cam->logicalId << std::endl;
     }
     std::cout << std::endl;
 }
@@ -317,7 +318,7 @@ void CameraManager::RequestSave() {
 void CameraManager::StartRecording() {
     std::string take_name;
     take_name = getTimeString();
-    currentRecordingDir = outputDir + take_name + "/";
+    currentRecordingDir = outputDir + "/" + take_name + "/";
     createRecFolder(currentRecordingDir);
 
     recording = true;
@@ -330,12 +331,10 @@ void CameraManager::StopRecording() {
 }
 void CameraManager::ToggleRecording() {
     if (recording) {
-        recording = false;
-        std::cout << "Recording stopped" << std::endl;
+        StopRecording();
     }
     else {
-        recording = true;
-        std::cout << "Recording started" << std::endl;
+        StartRecording();
     }
 }
 
@@ -421,10 +420,10 @@ void CameraManager::ConsumeLoop() {
             Log("Queue size: " + std::to_string(frameQueue.size()));
         }
         if (recording) {
-            SaveRaw(f, outputDir);
+            SaveRaw(f, currentRecordingDir);
         }
         else {
-            SaveImage(f, outputDir);
+            SaveImage(f, currentRecordingDir);
         }
     }
 

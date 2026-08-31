@@ -6,6 +6,7 @@
 struct WhiteBalanceConfig
 {
     std::string mode;
+    std::string lightSource;
     int red;
     int green;
     int blue;
@@ -17,13 +18,13 @@ struct CameraConfig
 
     int width;
     int height;
-    std::string pixelFormat;
+    //std::string pixelFormat;
 
     bool reverseX;
     bool reverseY;
 
     double exposureUs;
-    double gain;
+    double gainRaw;
     std::string exposureAuto;
     std::string gainAuto;
 

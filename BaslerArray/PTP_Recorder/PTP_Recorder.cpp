@@ -31,10 +31,13 @@ int main() {
 
     PylonInitialize();
 
+    std::string recordingDir;
+
     try {
 
         // 0. Load recorder configuration
         RecorderConfig recorderConfig = LoadRecorderConfig("configs/recorder_config.json");
+        recordingDir = recorderConfig.outputDirectory;
         /*
         // Create new recording folder
         std::string take_name;
@@ -42,7 +45,7 @@ int main() {
         recorderConfig.outputDirectory = recorderConfig.outputDirectory + take_name + "/";
         createRecFolder(recorderConfig.outputDirectory);
         */
-        CameraManager manager();
+        CameraManager manager;
 
         // 1. Load which physical cameras are used and their logical names
         map<string, string> cameraMapping = LoadCameraMapping("configs/camera_mapping.json");
@@ -82,7 +85,7 @@ int main() {
         // TODO: Remove the recording folder?
     }
 
-    removeIfEmpty(recorderConfig.outputDirectory);
+    removeIfEmpty(recordingDir);
 
     PylonTerminate();
 

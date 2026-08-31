@@ -67,17 +67,18 @@ CameraConfig LoadCameraConfig(const std::string& filename) {
 
     config.width = j["width"];
     config.height = j["height"];
-    config.pixelFormat = j["pixelFormat"];
+    //config.pixelFormat = j["pixelFormat"];
 
     config.reverseX = j["reverseX"];
     config.reverseY = j["reverseY"];
 
     config.exposureUs = j["exposureUs"];
-    config.gain = j["gain"];
+    config.gainRaw = j["gainRaw"];
     config.exposureAuto = j["exposureAuto"];
     config.gainAuto = j["gainAuto"];
 
     config.whiteBalance.mode = j["whiteBalance"]["mode"];
+    config.whiteBalance.lightSource = j["whiteBalance"]["lightSource"];
     config.whiteBalance.red = j["whiteBalance"]["red"];
     config.whiteBalance.green = j["whiteBalance"]["green"];
     config.whiteBalance.blue = j["whiteBalance"]["blue"];
@@ -121,8 +122,8 @@ std::map<std::string, CameraConfig> BuildCameraConfigs(
             if (json.contains("height"))
                 config.height = json["height"];
 
-            if (json.contains("pixelFormat"))
-                config.pixelFormat = json["pixelFormat"];
+            //if (json.contains("pixelFormat"))
+            //    config.pixelFormat = json["pixelFormat"];
 
             if (json.contains("reverseX"))
                 config.reverseX = json["reverseX"];
@@ -133,8 +134,8 @@ std::map<std::string, CameraConfig> BuildCameraConfigs(
             if (json.contains("exposureUs"))
                 config.exposureUs = json["exposureUs"];
 
-            if (json.contains("gain"))
-                config.gain = json["gain"];
+            if (json.contains("gainRaw"))
+                config.gainRaw = json["gainRaw"];
 
             if (json.contains("exposureAuto"))
                 config.exposureAuto = json["exposureAuto"];
@@ -148,6 +149,9 @@ std::map<std::string, CameraConfig> BuildCameraConfigs(
 
                 if (wb.contains("mode"))
                     config.whiteBalance.mode = wb["mode"];
+
+                if (wb.contains("lightSource"))
+                    config.whiteBalance.lightSource = wb["lightSource"];
 
                 if (wb.contains("red"))
                     config.whiteBalance.red = wb["red"];

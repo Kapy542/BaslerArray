@@ -1,18 +1,18 @@
 {
   "width": 1920,
   "height": 1200,
-  "pixelFormat": "BayerRG8",
   
   "reverseX": false,
   "reverseY": false,
   
   "exposureUs": 10000.0,
-  "gain": 100,
+  "gainRaw": 100,
   "exposureAuto": "Off",
   "gainAuto": "Off", 
   
   "whiteBalance": {
-	  "mode": "Custom",
+	  "mode": "Off",
+	  "lightSource": "Custom",
 	  "red": 105,
 	  "green": 64,
 	  "blue": 159

@@ -15,10 +15,12 @@ public:
     std::string serial;
     std::string logicalId;
 
+    CameraConfig cameraConfiguration;
+
     CameraNode(Pylon::IPylonDevice* device, const std::string& id);
     ~CameraNode();
 
-    void Configure(const CameraConfig& cfg);
+    void Configure(const CameraConfig& config);
 
     void ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, uint32_t groupMask);
 

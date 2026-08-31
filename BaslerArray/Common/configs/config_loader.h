@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
 #include "CameraConfig.h"
+
+#include <map>
+#include <string>
 
 struct RecorderConfig
 {

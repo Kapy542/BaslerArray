@@ -22,39 +22,49 @@ CameraNode::~CameraNode() {
     catch (const exception& e) { cerr << "Error in CameraNode destructor: " << e.what() << endl; }
 }
 
-void CameraNode::Configure(const CameraConfig& cfg) {
+void CameraNode::Configure(const CameraConfig& config) {
     INodeMap& n = camera.GetNodeMap();
 
-    TrySetBool(n, "ReverseX", false);
-    TrySetBool(n, "ReverseY", false);
-    TrySetEnum(n, "PixelFormat", "BayerRG8");
+    cameraConfiguration = config;
 
-    TrySetEnum(n, "BalanceWhiteAuto", "Off");
-    TrySetEnum(n, "ExposureAuto", "Off");
-    TrySetEnum(n, "GainAuto", "Off");
+    // Image dimensions
+    TrySetInt(n, "Width", config.width);
+    TrySetInt(n, "Height", config.height);
 
-    if (cfg.width > 0)
-        TrySetInt(n, "Width", cfg.width);
+    // Pixel format
+    //TrySetEnum(n, "PixelFormat", config.pixelFormat);
 
-    if (cfg.height > 0)
-        TrySetInt(n, "Height", cfg.height);
+    // Image orientation
+    TrySetBool(n, "ReverseX", config.reverseX);
+    TrySetBool(n, "ReverseY", config.reverseY);
 
-    if (cfg.exposure > 0)
-        TrySetFloat(n, "ExposureTimeAbs", cfg.exposure);
+    // Exposure
+    TrySetEnum(n, "ExposureAuto", config.exposureAuto);
+    TrySetFloat(n, "ExposureTimeAbs", config.exposureUs);
 
-    if (cfg.gain > 0)
-        TrySetInt(n, "GainRaw", cfg.gain);
+    // Gain
+    TrySetEnum(n, "GainAuto", config.gainAuto);
+    TrySetInt(n, "GainRaw", config.gainRaw);
 
-    TrySetEnum(n, "LightSourceSelector", cfg.lightSourceSelector);
+    // White balance
+    TrySetEnum(n, "BalanceWhiteAuto", config.whiteBalance.mode);
+    TrySetEnum(n, "LightSourceSelector", config.whiteBalance.lightSource);
 
-    for (const auto& br : cfg.balanceRatios) {
-        TrySetEnum(n, "BalanceRatioSelector", br.selector);
-        TrySetInt(n, "BalanceRatioRaw", br.balanceRatioRaw);
-    }
+    TrySetEnum(n, "BalanceRatioSelector", "Red");
+    TrySetInt(n, "BalanceRatioRaw", config.whiteBalance.red);
 
-    // TODO: Change to 9000
-    TrySetInt(n, "GevSCPSPacketSize", 1500);
-    TrySetInt(n, "GevSCPD", 1500);
+    TrySetEnum(n, "BalanceRatioSelector", "Green");
+    TrySetInt(n, "BalanceRatioRaw", config.whiteBalance.green);
+
+    TrySetEnum(n, "BalanceRatioSelector", "Blue");
+    TrySetInt(n, "BalanceRatioRaw", config.whiteBalance.blue);
+
+    // Frame rate
+    TrySetBool(n, "AcquisitionFrameRateEnable", false);
+    //TrySetFloat(n, "AcquisitionFrameRateAbs", config.fps);
+
+    // GigE packet size
+    TrySetInt(n, "GevSCPSPacketSize", config.packetSize);
 
     cout << "Configured camera " << logicalId << endl;
 }
@@ -76,7 +86,9 @@ void CameraNode::ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, u
     TrySetInt(n, "ActionGroupMask", groupMask);
 }
 
-void CameraNode::ConfigureSynchronousFreeRun(float fps) {
+void CameraNode::ConfigureSynchronousFreeRun() {
+    double fps = cameraConfiguration.fps;
+
     INodeMap& n = camera.GetNodeMap();
 
     TrySetEnum(n, "AcquisitionMode", "Continuous");
@@ -87,7 +99,7 @@ void CameraNode::ConfigureSynchronousFreeRun(float fps) {
     TrySetInt(n, "SyncFreeRunTimerStartTimeLow", 0);
     TrySetInt(n, "SyncFreeRunTimerStartTimeHigh", 0);
 
-    // Specify a trigger rate of 30 frames per second
+    // Specify a trigger rate
     TrySetFloat(n, "SyncFreeRunTimerTriggerRateAbs", fps);
 
     // Apply the changes
@@ -109,6 +121,7 @@ void CameraNode::EnablePTP() {
 // ========================= HELPER FUNCTIONS =========================
 
 bool CameraNode::TrySetEnum(INodeMap& n, const string& name, const string& value) {
+    //cout << "Setting " << name << " to " << value << endl;
     try {
         CEnumerationPtr node(n.GetNode(name.c_str()));
         if (!node || !IsWritable(node)) {
@@ -126,6 +139,7 @@ bool CameraNode::TrySetEnum(INodeMap& n, const string& name, const string& value
 }
 
 bool CameraNode::TrySetInt(INodeMap& n, const string& name, uint32_t value) {
+    //cout << "Setting " << name << " to " << value << endl;
     try {
         CIntegerPtr node(n.GetNode(name.c_str()));
         if (!node || !IsWritable(node)) {
@@ -143,6 +157,7 @@ bool CameraNode::TrySetInt(INodeMap& n, const string& name, uint32_t value) {
 }
 
 bool CameraNode::TrySetFloat(INodeMap& n, const string& name, double value) {
+    //cout << "Setting " << name << " to " << value << endl;
     try {
         CFloatPtr node(n.GetNode(name.c_str()));
         if (!node || !IsWritable(node)) {
@@ -160,6 +175,7 @@ bool CameraNode::TrySetFloat(INodeMap& n, const string& name, double value) {
 }
 
 bool CameraNode::TrySetBool(INodeMap & n, const string & name, bool value) {
+    //cout << "Setting " << name << " to " << value << endl;
     try {
         CBooleanPtr node(n.GetNode(name.c_str()));
         if (!node || !IsWritable(node)) {
@@ -177,6 +193,7 @@ bool CameraNode::TrySetBool(INodeMap & n, const string & name, bool value) {
 }
 
 bool CameraNode::TryExecuteCommand(INodeMap& n, const string& name) {
+    //cout << "Executing command " << name << endl;
     try {
         CCommandPtr node(n.GetNode(name.c_str()));
         node->Execute();
