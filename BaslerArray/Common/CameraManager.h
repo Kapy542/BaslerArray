@@ -13,6 +13,7 @@
 #include "core/Frame.h"
 #include "core/SafeQueue.h"
 #include "configs/CameraConfig.h"
+#include "configs/config_loader.h"
 
 enum class AcquisitionMode
 {
@@ -30,6 +31,14 @@ private:
     std::atomic<uint64_t> saveTriggerId = -1; // ID to be written on disk: Set by preview loop to save upcoming image (triggerId + N)
 
     std::atomic<bool> recording{ false };     // Flag for continuous recording
+   
+    std::string outputDir;
+    std::string currentRecordingDir;
+
+    int PREVIEW_EVERY_N;
+    double fps;
+    int period;
+    bool showPreview;
 
     SafeQueue<Frame> frameQueue;
     SafeQueue<Frame> previewQueue;   
@@ -37,29 +46,29 @@ private:
     thread consumerThread;
     thread previewThread;
     thread triggerThread;
-    std::string outputDir;
 
     // Get the GigE transport layer.
     // We'll need it later to issue the action commands.
     Pylon::IGigETransportLayer* pTL = nullptr;
 
 public:
-    CameraManager(const std::string& dir);
+    CameraManager();
     ~CameraManager();
 
     void Initialize(
         const std::map<std::string, std::string>& cameraMapping, 
-        const map<string, CameraConfig>& cameraConfigs);
+        const map<string, CameraConfig>& cameraConfigs,
+        const RecorderConfig& recorderConfig);
 
-    void DiscoverAndInit(const  std::map<std::string, std::string>& cameraMapping);
+    void DiscoverAndInit(const std::map<std::string, std::string>& cameraMapping);
 
-    void ConfigureAll(const  std::map<std::string, CameraConfig>& cameraConfigs);
+    void ConfigureAll(const std::map<std::string, CameraConfig>& cameraConfigs);
 
     void WaitForPtpSync();
 
     void SetupActionCommandTrigger();
 
-    void SetupSynchronousFreeRun(float fps);
+    void SetupSynchronousFreeRun();
 
     void Start(AcquisitionMode mode);
 

@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <fstream>
+#include <cmath>
 
 #include "core/Frame.h"
 #include "core/SafeQueue.h"
@@ -23,9 +24,10 @@ using namespace GenApi;
 using namespace std;
 using json = nlohmann::json;
 
-const int PREVIEW_EVERY_N = 2;
-const int FPS = 2;
-const int period = 1000 / FPS;
+//const int PREVIEW_EVERY_N = 2;
+//const int FPS = 2;
+//const int period = 1000 / FPS;
+
 /*
 void Log(const string& msg) {
     std::cout << "[" << get_time_string() << "] " << msg << std::endl;
@@ -36,14 +38,22 @@ void Log(const string& msg) {
 
 // ============================= SETUP ==============================
 
-CameraManager::CameraManager(const std::string& dir) : outputDir(dir) {}
+CameraManager::CameraManager() {}
 CameraManager::~CameraManager() {
     Stop();
 }
 
 void CameraManager::Initialize(
         const std::map<std::string, std::string>& cameraMapping, 
-        const map<string, CameraConfig>& cameraConfigs) {
+        const map<string, CameraConfig>& cameraConfigs,
+        const RecorderConfig& recorderConfig) {
+
+    outputDir = recorderConfig.outputDirectory;
+    PREVIEW_EVERY_N = recorderConfig.previewEveryNth;    
+    showPreview = recorderConfig.preview;
+
+    fps = cameraConfigs.begin()->second.fps;
+    period = static_cast<int>(std::round(1000.0 / fps));
 
     DiscoverAndInit(cameraMapping);
     ConfigureAll(cameraConfigs);
@@ -176,10 +186,10 @@ void CameraManager::SetupActionCommandTrigger() {
     std::cout << "Action command trigger configured." << std::endl << std::endl;
 }
 
-void CameraManager::SetupSynchronousFreeRun(float fps) {
+void CameraManager::SetupSynchronousFreeRun() {
     for (auto& cam : cameras)
     {
-        cam->ConfigureSynchronousFreeRun(fps);
+        cam->ConfigureSynchronousFreeRun();
     }
 
     Log("Synchronous Free Run configured.");
@@ -305,6 +315,11 @@ void CameraManager::RequestSave() {
 }
 
 void CameraManager::StartRecording() {
+    std::string take_name;
+    take_name = getTimeString();
+    currentRecordingDir = outputDir + take_name + "/";
+    createRecFolder(currentRecordingDir);
+
     recording = true;
     std::cout << "Recording started" << std::endl;
 }

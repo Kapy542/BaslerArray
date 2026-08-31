@@ -22,7 +22,7 @@ public:
 
     void ConfigureActionTrigger(uint32_t deviceKey, uint32_t groupKey, uint32_t groupMask);
 
-    void ConfigureSynchronousFreeRun(float fps);
+    void ConfigureSynchronousFreeRun();
 
     void EnablePTP();  
 

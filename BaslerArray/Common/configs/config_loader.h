@@ -3,6 +3,15 @@
 #include <string>
 #include "CameraConfig.h"
 
+struct RecorderConfig
+{
+    std::string outputDirectory;
+    bool preview;
+    int previewEveryNth;
+};
+
+RecorderConfig LoadRecorderConfig(const std::string& filename);
+
 std::map<std::string, std::string> LoadCameraMapping(const std::string& filename);
 
 CameraConfig LoadCameraConfig(const std::string& filename);

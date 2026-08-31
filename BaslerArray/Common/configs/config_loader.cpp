@@ -7,6 +7,22 @@
 
 using json = nlohmann::json;
 
+RecorderConfig LoadRecorderConfig(const std::string& filename)
+{
+    std::ifstream file(filename);
+
+    nlohmann::json json;
+    file >> json;
+
+    RecorderConfig config;
+
+    config.outputDirectory = json["outputDirectory"];
+    config.preview = json["preview"];
+    config.previewEveryNth = json["previewEveryNth"];
+
+    return config;
+}
+
 std::map<std::string, std::string> LoadCameraMapping(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {

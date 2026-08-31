@@ -25,25 +25,24 @@
 using namespace Pylon;
 using namespace std;
 
-std::string out_folder = "./recordings/";
+//std::string out_folder = "./recordings/";
 
 int main() {
-    /*
-    int width = 640, height = 480;
-    cv::Mat src(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
-    cv::imshow("Image", src);
-    cv::waitKey(0);
-    */
+
     PylonInitialize();
 
     try {
+
+        // 0. Load recorder configuration
+        RecorderConfig recorderConfig = LoadRecorderConfig("configs/recorder_config.json");
+        /*
         // Create new recording folder
         std::string take_name;
         take_name = getTimeString();
-        out_folder = out_folder + take_name + "/";
-        createRecFolder(out_folder);
-
-        CameraManager manager(out_folder);
+        recorderConfig.outputDirectory = recorderConfig.outputDirectory + take_name + "/";
+        createRecFolder(recorderConfig.outputDirectory);
+        */
+        CameraManager manager();
 
         // 1. Load which physical cameras are used and their logical names
         map<string, string> cameraMapping = LoadCameraMapping("configs/camera_mapping.json");
@@ -55,7 +54,7 @@ int main() {
         map<string, CameraConfig> cameraConfigs = BuildCameraConfigs(cameraMapping, defaultConfig);
 
         // 4. Find and initialize cameras using their individual configurations
-        manager.Initialize(cameraMapping, cameraConfigs);
+        manager.Initialize(cameraMapping, cameraConfigs, recorderConfig);
 
         // 5. Wait for PTP synchronization
         manager.WaitForPtpSync();
@@ -83,7 +82,7 @@ int main() {
         // TODO: Remove the recording folder?
     }
 
-    removeIfEmpty(out_folder);
+    removeIfEmpty(recorderConfig.outputDirectory);
 
     PylonTerminate();
 
