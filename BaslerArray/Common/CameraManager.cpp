@@ -12,7 +12,6 @@
 #include <fstream>
 #include <cmath>
 
-#include "core/Frame.h"
 #include "core/SafeQueue.h"
 #include "utils/file_io.h"
 #include "utils/Log.h"
@@ -321,12 +320,26 @@ void CameraManager::StartRecording() {
     currentRecordingDir = outputDir + "/" + take_name + "/";
     createRecFolder(currentRecordingDir);
 
+    for (auto& cam : cameras)
+    {
+        const std::string& id = cam->logicalId;
+        frameWriters[id].Open(currentRecordingDir + id, cam->cameraConfiguration);
+    }
+
     recording = true;
-    std::cout << "Recording started" << std::endl;
+
+    std::cout << "Recording started: " << currentRecordingDir << std::endl;
 }
 
 void CameraManager::StopRecording() {
+    for (auto& [id, writer] : frameWriters)
+    {
+        writer.Close();
+    }
+    frameWriters.clear();
+
     recording = false;
+    
     std::cout << "Recording stopped" << std::endl;
 }
 void CameraManager::ToggleRecording() {
@@ -420,7 +433,8 @@ void CameraManager::ConsumeLoop() {
             Log("Queue size: " + std::to_string(frameQueue.size()));
         }
         if (recording) {
-            SaveRaw(f, currentRecordingDir);
+            //SaveRaw(f, currentRecordingDir);            
+            frameWriters[f.cameraId].Write(f);
         }
         else {
             SaveImage(f, currentRecordingDir);

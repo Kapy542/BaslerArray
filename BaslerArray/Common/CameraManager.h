@@ -14,6 +14,8 @@
 #include "core/SafeQueue.h"
 #include "configs/CameraConfig.h"
 #include "configs/config_loader.h"
+#include "utils/file_io.h"
+
 
 enum class AcquisitionMode
 {
@@ -42,10 +44,13 @@ private:
 
     SafeQueue<Frame> frameQueue;
     SafeQueue<Frame> previewQueue;   
+
     vector<thread> grabThreads;
     thread consumerThread;
     thread previewThread;
     thread triggerThread;
+
+    std::map<std::string, FrameWriter> frameWriters;
 
     // Get the GigE transport layer.
     // We'll need it later to issue the action commands.

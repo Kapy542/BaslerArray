@@ -12,6 +12,9 @@
 #include <fstream>
 #include <sstream>
 
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 using namespace Pylon;
 
 std::string getTimeString()
@@ -126,4 +129,128 @@ void SaveRaw(const Frame& f, const std::string& baseDir)
     {
         std::cerr << "SaveRaw error: " << e.what() << std::endl;
     }
+}
+
+
+void SaveMetadata(
+    const std::string& directory,
+    const CameraConfig& config)
+{
+    json metadata;
+
+    metadata["width"] = config.width;
+    metadata["height"] = config.height;
+   // metadata["pixelFormat"] = config.pixelFormat;
+
+    metadata["fps"] = config.fps;
+
+    metadata["reverseX"] = config.reverseX;
+    metadata["reverseY"] = config.reverseY;
+
+    metadata["exposureUs"] = config.exposureUs;
+    metadata["gain"] = config.gainRaw;
+
+    metadata["exposureAuto"] = config.exposureAuto;
+    metadata["gainAuto"] = config.gainAuto;
+
+    metadata["whiteBalance"]["mode"] = config.whiteBalance.mode;
+
+    metadata["whiteBalance"]["lightSource"] = config.whiteBalance.lightSource;
+
+    metadata["whiteBalance"]["red"] = config.whiteBalance.red;
+
+    metadata["whiteBalance"]["green"] = config.whiteBalance.green;
+
+    metadata["whiteBalance"]["blue"] = config.whiteBalance.blue;
+
+    metadata["packetSize"] = config.packetSize;
+
+    // Document how the binary files are stored.
+    metadata["timestampFormat"] = "uint64";
+    metadata["timestampUnit"] = "ns";
+
+    std::ofstream file(
+        std::filesystem::path(directory) / "metadata.json");
+
+    if (!file)
+    {
+        throw std::runtime_error(
+            "Failed to create metadata.json in: " + directory);
+    }
+
+    file << metadata.dump(4);
+}
+
+
+////////////////
+// FameWriter //
+////////////////
+
+void FrameWriter::Open(const std::string& directory, const CameraConfig& config)
+{
+    // Make sure the directory exists
+    std::filesystem::create_directories(directory);
+
+    const std::filesystem::path framePath =
+        std::filesystem::path(directory) / "frames.bin";
+
+    const std::filesystem::path timestampPath =
+        std::filesystem::path(directory) / "timestamps.bin";
+
+    frameFile.open(framePath, std::ios::binary);
+    timestampFile.open(timestampPath, std::ios::binary);
+
+    if (!frameFile.is_open())
+    {
+        throw std::runtime_error(
+            "Failed to open frame file: " + framePath.string());
+    }
+
+    if (!timestampFile.is_open())
+    {
+        frameFile.close();
+
+        throw std::runtime_error(
+            "Failed to open timestamp file: " + timestampPath.string());
+    }
+
+    SaveMetadata(directory, config);
+
+    std::cout << "Opened recording files in: "
+        << directory << std::endl;
+}
+
+void FrameWriter::Write(const Frame& f)
+{
+    // Get image data from Pylon grab result
+    const void* buffer = f.grab->GetBuffer();
+    size_t size = f.grab->GetImageSize();
+
+    frameFile.write(
+        reinterpret_cast<const char*>(buffer),
+        static_cast<std::streamsize>(size));
+
+    timestampFile.write(
+        reinterpret_cast<const char*>(&f.timestamp),
+        sizeof(f.timestamp));
+}
+
+void FrameWriter::Close()
+{
+    if (frameFile.is_open())
+        frameFile.close();
+
+    if (timestampFile.is_open())
+        timestampFile.close();
+}
+
+bool FrameWriter::IsOpen() const
+{
+    return frameFile.is_open() &&
+        timestampFile.is_open();
+}
+
+FrameWriter::~FrameWriter()
+{
+    Close();
 }

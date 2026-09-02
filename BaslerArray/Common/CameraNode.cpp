@@ -27,12 +27,16 @@ void CameraNode::Configure(const CameraConfig& config) {
 
     cameraConfiguration = config;
 
+    // Pixel format
+    // Before setting, use default orientation because mirroring the image will change the bayer pattern order
+    TrySetBool(n, "ReverseX", false);
+    TrySetBool(n, "ReverseY", false);
+    //TrySetEnum(n, "PixelFormat", config.pixelFormat);
+    TrySetEnum(n, "PixelFormat", "BayerRG8");
+
     // Image dimensions
     TrySetInt(n, "Width", config.width);
     TrySetInt(n, "Height", config.height);
-
-    // Pixel format
-    //TrySetEnum(n, "PixelFormat", config.pixelFormat);
 
     // Image orientation
     TrySetBool(n, "ReverseX", config.reverseX);
