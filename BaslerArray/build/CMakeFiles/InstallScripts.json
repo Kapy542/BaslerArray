@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/civit/Desktop/BaslerArray/BaslerArray/build/cmake_install.cmake",
+		"/home/civit/Desktop/BaslerArray/BaslerArray/build/Common/cmake_install.cmake",
+		"/home/civit/Desktop/BaslerArray/BaslerArray/build/PTP_Recorder/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -16,6 +16,14 @@ Four Basler cameras running at 20 FPS and full resolution produce approximately:
 
 ---
 
+# Setup Linux PTP
+
+```bash
+sudo apt install linuxptp
+```
+
+---
+
 # Ubuntu Setup
 
 These instructions describe how to prepare a fresh Ubuntu installation for building and running the BaslerRecorder / PTP_Recorder.
@@ -33,12 +41,6 @@ Install Git if the project is stored in a Git repository:
 
 ```bash
 sudo apt install git
-```
-
-Check the system architecture:
-
-```bash
-uname -m
 ```
 
 ---
@@ -108,8 +110,11 @@ After downloading the package, go to the download directory:
 ```bash
 cd ~/Downloads
 ```
+Extract and Install the downloaded package:
 
-Install the downloaded package:
+```bash
+tar -xzf pylon-26.08.1_linux-x86_64_debs.tar.gz
+```
 
 ```bash
 sudo apt install ./pylon_*.deb
@@ -239,10 +244,12 @@ Example:
 
 ```text
 BaslerArray/
-└── SynchronizedSnapshots/
+└── BaslerArray/
     ├── CMakeLists.txt
+    ├── BaslerArray.sln
     ├── configs/
     ├── Common/
+    ├── Dependencies/
     ├── PTP_Recorder/
     └── ...
 ```
@@ -254,7 +261,7 @@ BaslerArray/
 Go to the project directory:
 
 ```bash
-cd /BaslerArray/SynchronizedSnapshots
+cd /BaslerArray/BaslerArray
 ```
 
 Create the build directory:
@@ -291,13 +298,13 @@ The recorder expects the configuration files inside the `build` directory.
 From:
 
 ```text
-BaslerArray/SynchronizedSnapshots/build/
+BaslerArray/BaslerArray/build/
 ```
 
 run:
 
 ```bash
-cp -r ../configs ./configs
+cp -r ../PTP_Recorder/configs ./PTP_Recorder/configs
 ```
 
 The directory should now look similar to:
@@ -305,11 +312,11 @@ The directory should now look similar to:
 ```text
 build/
 ├── PTP_Recorder
-└── configs/
-    ├── recorder_config.json
-    ├── camera_mapping.json
-    ├── camera_config.json
-    └── cameras/
+    └── configs/
+        ├── recorder_config.json
+        ├── camera_mapping.json
+        ├── camera_config.json
+        └── cameras/
 ```
 
 ---
@@ -504,6 +511,10 @@ Contains the camera configuration and information required to interpret the bina
 From the `/BaslerArray` directory:
 
 ```bash
+source .venv/bin/activate
+```
+
+```bash
 python3 ./bin2png.py "<take_name>"
 ```
 
@@ -617,8 +628,8 @@ Do not troubleshoot the recorder until the cameras can be successfully accessed 
 Make sure the recorder is launched from the `build` directory:
 
 ```bash
-cd /BaslerArray/SynchronizedSnapshots/build
-./PTP_Recorder
+cd /BaslerArray/BaslerArray/build
+./PTP_Recorder/PTP_Recorder
 ```
 
 Check that the configuration directory exists:
@@ -665,8 +676,8 @@ Then:
 5. Configure the camera parameters.
 6. Configure the recorder.
 7. Build the project with CMake.
-8. Copy the configuration files into `build/configs`.
-9. Run `./PTP_Recorder`.
+8. Copy the configuration files into `build/PTP_Recorder/configs`.
+9. Run `./PTP_Recorder/PTP_Recorder`.
 10. Make a short test recording.
 11. Run `bin2png.py` to verify and export the recording.
 

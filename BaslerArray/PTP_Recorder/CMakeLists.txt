@@ -1,5 +1,5 @@
 add_executable(PTP_Recorder
-    main.cpp
+    PTP_Recorder.cpp
 )
 
 target_link_libraries(PTP_Recorder

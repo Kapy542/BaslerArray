@@ -1,0 +1,21 @@
+{
+    "exposureAuto": "Off",
+    "exposureUs": 10000.0,
+    "fps": 0.5,
+    "gain": 100.0,
+    "gainAuto": "Off",
+    "height": 1200,
+    "packetSize": 1500,
+    "reverseX": true,
+    "reverseY": true,
+    "timestampFormat": "uint64",
+    "timestampUnit": "ns",
+    "whiteBalance": {
+        "blue": 159,
+        "green": 64,
+        "lightSource": "Custom",
+        "mode": "Off",
+        "red": 105
+    },
+    "width": 1920
+}
