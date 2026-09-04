@@ -12,3 +12,17 @@ phc2sys: Synchronizes two clocks within the system; in this case, it aligns the 
 	------
   |       |
 NIC1	 NIC2
+
+
+sudo cp ./ptp4l.conf /etc/linuxptp/my-ptp4l.conf
+
+sudo ptp4l \
+    -f /etc/linuxptp/my-ptp4l.conf \
+    -i enp3s0 \
+    -i enp5s0 \
+    -i enp6s0 \
+    -i enp7s0 \
+    -i enp8s0 \
+    -m
+    
+sudo phc2sys -a -r -m
