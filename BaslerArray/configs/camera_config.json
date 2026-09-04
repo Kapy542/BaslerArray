@@ -1,0 +1,24 @@
+{
+  "width": 1920,
+  "height": 1200,
+  
+  "reverseX": false,
+  "reverseY": false,
+  
+  "exposureUs": 10000.0,
+  "gainRaw": 100,
+  "exposureAuto": "Off",
+  "gainAuto": "Off", 
+  
+  "whiteBalance": {
+	  "mode": "Off",
+	  "lightSource": "Custom",
+	  "red": 105,
+	  "green": 64,
+	  "blue": 159
+	},
+	
+  "fps": 0.5,
+  "packetSize": 1500
+}
+  

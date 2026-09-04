@@ -1,0 +1,6 @@
+- Setup linuxptp (PTP/ptp4l.conf)
+- Setup Ouster (Ouster/)
+- Setup start script (start_capture.sh)
+- Short test run and process/test over weekend
+- Setup check script (start_capture.sh)
+- Fix cameras, calibrate, and write parameters into ()
