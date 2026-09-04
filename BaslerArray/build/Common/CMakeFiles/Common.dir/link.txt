@@ -1,2 +1,0 @@
-/usr/bin/ar qc libCommon.a CMakeFiles/Common.dir/CameraManager.cpp.o CMakeFiles/Common.dir/CameraNode.cpp.o CMakeFiles/Common.dir/configs/config_loader.cpp.o CMakeFiles/Common.dir/utils/file_io.cpp.o CMakeFiles/Common.dir/utils/Log.cpp.o
-/usr/bin/ranlib libCommon.a
