@@ -218,6 +218,12 @@ Install the required packages:
 pip install numpy opencv-python
 ```
 
+If using Ouster:
+
+```bash
+pip install ouster-sdk
+```
+
 The virtual environment can be activated again later with:
 
 ```bash

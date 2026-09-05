@@ -1,0 +1,1 @@
+ouster-cli source 169.254.242.16 save capture.pcap

@@ -54,6 +54,12 @@ sudo phc2sys -a -r -m
 -r: Synchronizes system clock (if used once, not possible time source)
 -m: print messages
 
+sudo phc2sys -a -r -f /etc/linuxptp/my-ptp4l.conf -m
+
+# Debug
+for i in enp3s0 enp5s0 enp6s0 enp7s0 enp8s0; do     echo -n "$i -> ";     readlink -f /sys/class/net/$i/device/ptp/ptp*; done
+
+sudo phc2sys -s /dev/ptp6 -c /dev/ptp2 -c /dev/ptp4 -c /dev/ptp5 -c /dev/ptp7 -O 0 -m
 
 4. Check
 
