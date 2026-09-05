@@ -1,20 +1,41 @@
-Ubuntu PTP set up
+Ubuntu PTP set up Boundary Clock (BC): https://wiki.gsi.de/TOS/Timing/RunOrdinaryBoundaryClocksUsingLinuxptp
 
-linuxptp: ptp4l, phc2sys
+commands: ptp4l, phc2sys
 
+ptp4l: Synchronizes the NIC’s hardware clock (PHC) with connected device. PTP master is decided based on priority.
+phc2sys: Synchronizes two clocks within the system; in this case, it aligns the system clock with the slave (clock from GM) NIC’s hardware clock (PHC), and other NICs together.
 
-ptp4l: Configures the NIC’s hardware clock (PHC) with high priority so that the interface can act as the PTP master.
-phc2sys: Synchronizes two clocks within the system; in this case, it aligns the system clock with the NIC’s hardware clock (PHC).
+So ptp4l produces 1 slave and n masters for a system. Then phc2sys -a uses this information, and takes slave NIC as a source (-s), and master NICs as a sink (-c) to synchronize all PHCs together
 
-
+ System Clock
+	slave
+      |
 	Ubuntu
+	 BC
 	  |
-	------
-  |       |
-NIC1	 NIC2
+	-------------- ....
+  |       |       |
+NIC1	 NIC2    NIC3
+slave   master  master
+  |		  |       |
+GNSS     CAM1    CAM2
+grand   slave   slave
+master
 
+
+STEPS:
+
+1. Confirm no time synchronization on a local system
+
+
+2. Perform PTP synchronization
 
 sudo cp ./ptp4l.conf /etc/linuxptp/my-ptp4l.conf
+
+# Without input?
+sudo ptp4l -f /etc/linuxptp/my-ptp4l.conf -m 
+-f: Configuration file
+-m: Print messages
 
 sudo ptp4l \
     -f /etc/linuxptp/my-ptp4l.conf \
@@ -24,5 +45,25 @@ sudo ptp4l \
     -i enp7s0 \
     -i enp8s0 \
     -m
-    
+
+
+3. Synchronize NICs and System Clock together
+
 sudo phc2sys -a -r -m
+-a: Uses running ptp4l to automatically adjust sync direction 
+-r: Synchronizes system clock (if used once, not possible time source)
+-m: print messages
+
+
+4. Check
+
+$ sudo phc_ctl /dev/ptp0 -- get        # PTP time of the slave clock in the demo BC
+phc_ctl[14405.321]: clock time is 1587506971.943044312 or Wed Apr 22 00:09:31 2020
+
+$ sudo phc_ctl /dev/ptp1 -- get        # PTP time of the master clock in the demo BC
+phc_ctl[14408.640]: clock time is 1631103584.010256074 or Wed Sep  8 14:19:44 2021
+
+
+
+    
+

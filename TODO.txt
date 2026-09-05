@@ -1,6 +1,13 @@
 - Setup linuxptp (PTP/ptp4l.conf)
+
 - Setup Ouster (Ouster/)
 - Setup start script (start_capture.sh)
 - Short test run and process/test over weekend
-- Setup check script (start_capture.sh)
+- Setup check script (add into start_capture.sh)
 - Fix cameras, calibrate, and write parameters into ()
+- Double check synchronization with PTP logs and output data
+
+- Save directory into the start_capture.sh and pass to PTP_Recorder as an argument
+
+- Label everything
+- Write simple Recording Instructions and Check Cheet.
