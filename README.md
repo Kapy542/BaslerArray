@@ -212,6 +212,12 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
+(In Windows):
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
 Install the required packages:
 
 ```bash
@@ -228,6 +234,12 @@ The virtual environment can be activated again later with:
 
 ```bash
 source .venv/bin/activate
+```
+
+(Or in Windows):
+
+```bash
+.venv\Scripts\activate
 ```
 
 ---
@@ -555,6 +567,10 @@ recordings/
     │       └── ...
     └── CAM_04/
         └── ...
+```
+
+```bash
+python .\Validation\validate_recording.py "I:\JammerTestTestData" "I:\JammerTestTestData" "2026-09-05--17-56-44"
 ```
 
 ---
