@@ -10,6 +10,7 @@
 #include <atomic>
 
 #include "CameraNode.h"
+#include "OusterNode.h"
 #include "core/Frame.h"
 #include "core/SafeQueue.h"
 #include "configs/CameraConfig.h"
@@ -26,6 +27,9 @@ enum class AcquisitionMode
 class CameraManager 
 {
 private:
+    std::unique_ptr<OusterNode> ouster;
+    std::string ousterOutputDir;
+
     vector<unique_ptr<CameraNode>> cameras;
     std::atomic<bool> running{ false };
 

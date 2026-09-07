@@ -62,6 +62,16 @@ void CameraManager::Initialize(
     // We'll need it later to issue the action commands.
     CTlFactory& tlFactory = CTlFactory::GetInstance();
     pTL = dynamic_cast<IGigETransportLayer*>(tlFactory.CreateTl(BaslerGigEDeviceClass));
+
+    // Use ouster if enabled
+    if (recorderConfig.enableOuster)
+    {
+        ousterOutputDir = recorderConfig.ousterOutputDirectory;
+        ouster = std::make_unique<OusterNode>(
+            recorderConfig.ousterSensor,
+            recorderConfig.ousterPreview
+            );
+    }
 }
 
 void CameraManager::DiscoverAndInit(const map<string, string>& cameraMapping) {
@@ -320,10 +330,25 @@ void CameraManager::StartRecording() {
     currentRecordingDir = outputDir + "/" + take_name + "/";
     createRecFolder(currentRecordingDir);
 
+    // Start recording on Baslers
     for (auto& cam : cameras)
     {
         const std::string& id = cam->logicalId;
         frameWriters[id].Open(currentRecordingDir + id, cam->cameraConfiguration);
+    }
+
+    // Start Ouster recording
+    if (ouster)
+    {
+        std::string lidarPath = ousterOutputDir + "/"  + take_name;
+
+        createRecFolder(ousterOutputDir);
+
+        if (!ouster->Start(lidarPath))
+        {
+            std::cerr << "[Ouster] Failed to start recording."
+                << std::endl;
+        }
     }
 
     recording = true;
@@ -337,6 +362,12 @@ void CameraManager::StopRecording() {
         writer.Close();
     }
     frameWriters.clear();
+
+    // Stop Ouster
+    if (ouster)
+    {
+        ouster->Stop();
+    }
 
     recording = false;
     

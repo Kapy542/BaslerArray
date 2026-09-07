@@ -10,6 +10,11 @@ struct RecorderConfig
     std::string outputDirectory;
     bool preview;
     int previewEveryNth;
+
+    bool enableOuster = false;
+    std::string ousterSensor;
+    std::string ousterOutputDirectory;
+    bool ousterPreview = false;
 };
 
 RecorderConfig LoadRecorderConfig(const std::string& filename);
