@@ -9,6 +9,7 @@ using json = nlohmann::json;
 
 RecorderConfig LoadRecorderConfig(const std::string& filename)
 {
+    std::cout << "Reading configs from: " << filename << std::endl;
     std::ifstream file(filename);
 
     nlohmann::json json;
@@ -21,14 +22,17 @@ RecorderConfig LoadRecorderConfig(const std::string& filename)
     config.previewEveryNth = json["previewEveryNth"];
 
     config.enableOuster = json["enableOuster"];
-    config.ousterSensor = json["ousterSensor "];
+    config.ousterSensor = json["ousterSensor"];
     config.ousterOutputDirectory = json["ousterOutputDirectory"];
     config.ousterPreview = json["ousterPreview"];
 
     return config;
 }
 
-std::map<std::string, std::string> LoadCameraMapping(const std::string& filename) {
+std::map<std::string, std::string> LoadCameraMapping(const std::string& filename) 
+{
+    std::cout << "Reading configs from: " << filename << std::endl;
+    
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open camera order file: " + filename);
@@ -57,7 +61,10 @@ std::map<std::string, std::string> LoadCameraMapping(const std::string& filename
     return mapping;
 }
 
-CameraConfig LoadCameraConfig(const std::string& filename) {
+CameraConfig LoadCameraConfig(const std::string& filename) 
+{
+    std::cout << "Reading configs from: " << filename << std::endl;
+    
     std::ifstream file(filename);
 
     if (!file.is_open())

@@ -1,7 +1,8 @@
 add_library(Common STATIC
     CameraManager.cpp
     CameraNode.cpp
-
+    OusterNode.cpp
+    
     configs/config_loader.cpp
 
     utils/file_io.cpp

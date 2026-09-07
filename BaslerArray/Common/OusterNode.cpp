@@ -42,9 +42,8 @@ bool OusterNode::Start(const std::string& outputPath)
      * ------------------------------------------------------------
      */
 
-    const string outputFile =
-        outputPath + ".pcap";
-
+    const string outputFile = outputPath + ".pcap";
+    std::cout << "Starting Ouster Rec in: " << outputFile << std::endl;
 
     /*
      * ------------------------------------------------------------
@@ -73,16 +72,17 @@ bool OusterNode::Start(const std::string& outputPath)
 
     if (processId == 0)
     {
+        std::string ousterCliPath = ".venv/bin/ouster-cli";
         if (preview) {
-            execlp(
-                "ouster-cli",
+            execl(
+                ousterCliPath.c_str(),
                 "ouster-cli",
 
                 "source",
                 sensor.c_str(),
 
                 "save_raw",
-                outputPath.c_str(),
+                outputFile.c_str(),
 
                 "viz", // optional preview
 
@@ -90,17 +90,15 @@ bool OusterNode::Start(const std::string& outputPath)
             );
         }
         else {
-            execlp(
-                "ouster-cli",
+            execl(
+                ousterCliPath.c_str(),
                 "ouster-cli",
 
                 "source",
                 sensor.c_str(),
 
                 "save_raw",
-                outputPath.c_str(),
-
-                "viz", // optional preview
+                outputFile.c_str(),
 
                 nullptr
             );

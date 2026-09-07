@@ -459,7 +459,7 @@ void CameraManager::ConsumeLoop() {
         Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
             " Timestamp " + to_string(f.timestamp) + "\n");
         */
-        if (f.frameId % 10 == 0)
+        if ((f.frameId % 10 == 0) && (frameQueue.size() > 10))
         {
             Log("Queue size: " + std::to_string(frameQueue.size()));
         }
