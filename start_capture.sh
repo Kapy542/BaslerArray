@@ -1,126 +1,71 @@
 #!/bin/bash
 
-set -e
+CONFIG="./BaslerArray/build/PTP_Recorder/configs/recorder_config.json"
 
-# ==============================
-# Configuration
-# ==============================
+# Read recording directory
+OUTPUT_DIR=$(jq -r '.outputDirectory' "$CONFIG")
 
-PTP_CONFIG="/path/to/config/ptp4l.conf"
+echo "Recording directory:"
+echo "  $OUTPUT_DIR"
 
-OUSTER_IFACE="enp1s0"
-CAM1_IFACE="enp2s0"
-CAM2_IFACE="enp3s0"
-CAM3_IFACE="enp4s0"
-CAM4_IFACE="enp5s0"
+# Check directory
+if [ ! -d "$OUTPUT_DIR" ]; then
+    echo "ERROR: Recording directory does not exist!"
+    exit 1
+fi
 
-OUSTER_SCRIPT="/path/to/ouster/ouster_capture.py"
-PTP_RECORDER="/path/to/BaslerArray/PTP_Recorder"
+# Show available space
+df -h "$OUTPUT_DIR"
 
-RECORD_DIR="/path/to/recordings"
+# Create session directory
+SESSION=$(date +"%Y-%m-%d_%H-%M-%S")
+RECORDING_DIR="$OUTPUT_DIR/$SESSION"
 
-# ==============================
-# Cleanup
-# ==============================
+mkdir -p "$RECORDING_DIR"
 
-cleanup()
-{
-    echo ""
-    echo "Stopping capture..."
+echo
+echo "Recording to:"
+echo "  $RECORDING_DIR"
+echo
 
-    if [[ -n "$OUSTER_PID" ]]; then
-        kill "$OUSTER_PID" 2>/dev/null || true
-    fi
-
-    if [[ -n "$RECORDER_PID" ]]; then
-        kill "$RECORDER_PID" 2>/dev/null || true
-    fi
-
-    if [[ -n "$PHC2SYS_PID" ]]; then
-        kill "$PHC2SYS_PID" 2>/dev/null || true
-    fi
-
-    if [[ -n "$PTP4L_PID" ]]; then
-        kill "$PTP4L_PID" 2>/dev/null || true
-    fi
-
-    echo "Capture stopped."
-}
-
-trap cleanup SIGINT SIGTERM EXIT
-
-
-# ==============================
-# Start LinuxPTP
-# ==============================
-
-echo "Starting ptp4l..."
-
-sudo ptp4l \
-    -f "$PTP_CONFIG" \
-    -i "$OUSTER_IFACE" \
-    -i "$CAM1_IFACE" \
-    -i "$CAM2_IFACE" \
-    -i "$CAM3_IFACE" \
-    -i "$CAM4_IFACE" \
-    -m &
-
-PTP4L_PID=$!
-
-sleep 2
-
-
-echo "Starting phc2sys..."
-
-sudo phc2sys -a -r -m &
-
-PHC2SYS_PID=$!
-
-sleep 2
-
-
-# ==============================
-# TODO:
-# Wait for PTP synchronization
-# ==============================
-
-echo "Waiting for PTP synchronization..."
-
-sleep 5
-
-
-# ==============================
 # Start Ouster
-# ==============================
-
-echo "Starting Ouster capture..."
-
-python3 "$OUSTER_SCRIPT" "$RECORD_DIR" &
-
+source .venv/bin/activate
+ouster-cli source 169.254.242.16 save "$RECORDING_DIR/lidar.pcap" &
 OUSTER_PID=$!
 
+# Start PTP Recorder
+#cd ./BaslerArray/build/PTP_Recorder
+#./PTP_Recorder &
+#RECORDER_PID=$!
 
-# ==============================
-# Start Basler recorder
-# ==============================
-
-echo "Starting Basler recorder..."
-
-"$PTP_RECORDER" &
-
+gnome-terminal \
+    --title="BaslerRecorder" \
+    --working-directory="/home/civit/Desktop/BaslerArray/BaslerArray/build/PTP_Recorder" \
+    -- bash -c './PTP_Recorder; exec bash' &
 RECORDER_PID=$!
+    
+echo "Recording started."
+echo "Ouster PID:       $OUSTER_PID"
+echo "PTP_Recorder PID: $RECORDER_PID"
+echo
+echo "Disk space will be shown every minute."
+echo
 
+# Monitor recording
+while kill -0 "$RECORDER_PID" 2>/dev/null; do
+    echo
+    echo "[$(date '+%H:%M:%S')] Disk space:"
+    df -h "$OUTPUT_DIR"
 
-echo ""
-echo "================================="
-echo " Capture started"
-echo "================================="
-echo ""
-echo "Press Ctrl+C to stop."
-echo ""
+    sleep 60
+done
 
-wait
+echo
+echo "PTP_Recorder stopped."
 
-# ==============================
-# Process first and last frame to check functionality
-# ==============================
+# Stop Ouster
+kill -INT "$OUSTER_PID" 2>/dev/null
+wait "$OUSTER_PID" 2>/dev/null
+
+echo "Ouster recorder stopped."
+echo "Recording finished."
