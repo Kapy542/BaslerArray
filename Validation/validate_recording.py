@@ -1,7 +1,10 @@
+# TODO: Write validation into file (export_dir = rec_dir / f"{take_name}_export")
+
 import numpy as np
 
 from pathlib import Path
 from itertools import combinations
+import sys
 
 import argparse
 
@@ -706,10 +709,24 @@ def main(BASLER_FOLDER, OUSTER_FOLDER, TAKE_NAME):
     print("=" * 60)
 
 
+# Redirect prints to log file
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, text):
+        for f in self.files:
+            f.write(text)
+            f.flush()
+
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(
-        description="Validate Basler and Ouster data"
+        description="Validate Basler and Ouster data numerically"
     )
 
     parser.add_argument(
@@ -732,7 +749,21 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    main(args.rec_dir, args.ouster_dir, args.take_name)
+    # rec_dir = args.rec_dir
+    # ouster_dir = args.ouster_dir
+    # take_name = args.take_name
+    
+    rec_dir = "I:\JammerTestTestData"
+    ouster_dir = "I:\JammerTestTestData"
+    take_name = "2026-09-05--17-56-44"
+    
+    # Redirect prints into log file
+    export_dir = Path(rec_dir) / f"{take_name}_export"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    log_file = open(export_dir / "validation.txt", "w")
+    sys.stdout = Tee(sys.__stdout__, log_file)
+
+    main(rec_dir, ouster_dir, take_name)
     
     
     

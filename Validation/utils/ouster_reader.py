@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-# import open3d as o3d
 
 from ouster.sdk import open_source, core
 
@@ -13,12 +12,13 @@ class OusterReader:
     Expected directory structure:
 
         recording/
-            ouster.pcap
-            ouster.json
+            <take_name>.pcap
+            <take_name>.json
 
     Timestamps are returned in nanoseconds.
 
-    Point clouds are returned as Open3D PointCloud objects.
+    Point clouds are returned as NumPy arrays
+    with shape (N, 3).
 
     Only timestamps are kept in memory. Individual LiDAR scans
     are loaded from the PCAP when requested.
@@ -31,11 +31,16 @@ class OusterReader:
     ):
         pcap_filename = take_name + ".pcap"
         metadata_filename = take_name + ".json"
-        
+
         self.recording_dir = Path(recording_dir)
 
-        self.pcap_file = self.recording_dir / pcap_filename
-        self.metadata_file = self.recording_dir / metadata_filename
+        self.pcap_file = (
+            self.recording_dir / pcap_filename
+        )
+
+        self.metadata_file = (
+            self.recording_dir / metadata_filename
+        )
 
         if not self.pcap_file.exists():
             raise FileNotFoundError(
@@ -58,12 +63,18 @@ class OusterReader:
 
         self._metadata = self._source.sensor_info[0]
 
-        self._xyzlut = core.XYZLut(self._metadata)
+        self._xyzlut = core.XYZLut(
+            self._metadata
+        )
 
         # Store only one timestamp per scan.
-        self._timestamps = self._build_timestamp_index()
+        self._timestamps = (
+            self._build_timestamp_index()
+        )
 
-        self.num_frames = len(self._timestamps)
+        self.num_frames = len(
+            self._timestamps
+        )
 
         if self.num_frames == 0:
             raise RuntimeError(
@@ -80,122 +91,163 @@ class OusterReader:
     def get_timestamp(self, index):
         self._check_index(index)
 
-        return int(self._timestamps[index])
+        return int(
+            self._timestamps[index]
+        )
 
     def first_timestamp(self):
-        return int(self._timestamps[0])
+        return int(
+            self._timestamps[0]
+        )
 
     def last_timestamp(self):
-        return int(self._timestamps[-1])
+        return int(
+            self._timestamps[-1]
+        )
 
-    # def read_pointcloud(self, index):
-    #     """
-    #     Read one LiDAR scan and convert it to an Open3D
-    #     point cloud.
+    def read_pointcloud(self, index):
+        """
+        Read one LiDAR scan.
 
-    #     Only the requested scan is loaded into memory.
-    #     """
+        Returns
+        -------
+        np.ndarray
+            Point coordinates with shape (N, 3).
+        """
 
-    #     self._check_index(index)
+        self._check_index(index)
 
-    #     scan_set = self._source[index]
+        scan_set = self._source[index]
 
-    #     if not scan_set:
-    #         raise RuntimeError(
-    #             f"No scan found at index {index}."
-    #         )
+        if not scan_set:
+            raise RuntimeError(
+                f"No scan found at index {index}."
+            )
 
-    #     scan = scan_set[0]
+        scan = scan_set[0]
 
-    #     if scan is None:
-    #         raise RuntimeError(
-    #             f"Scan at index {index} is None."
-    #         )
+        if scan is None:
+            raise RuntimeError(
+                f"Scan at index {index} is None."
+            )
 
-    #     xyz = self._xyzlut(scan)
+        xyz = self._xyzlut(scan)
 
-    #     points = xyz.reshape((-1, 3))
+        points = xyz.reshape(
+            (-1, 3)
+        )
 
-    #     # Remove invalid points.
-    #     valid = np.isfinite(points).all(axis=1)
-    #     points = points[valid]
+        # Remove invalid points.
+        valid = np.isfinite(
+            points
+        ).all(axis=1)
 
-    #     pointcloud = o3d.geometry.PointCloud()
+        points = points[valid]
 
-    #     pointcloud.points = o3d.utility.Vector3dVector(
-    #         points
-    #     )
+        return points
 
-    #     return pointcloud
+    def read_pointcloud_at_timestamp(
+        self,
+        timestamp,
+    ):
+        """
+        Read the LiDAR scan closest to the
+        requested timestamp.
 
-    # def read_pointcloud_at_timestamp(self, timestamp):
-    #     """
-    #     Read the LiDAR scan closest to the requested
-    #     timestamp.
+        Timestamp is in nanoseconds.
 
-    #     Timestamp is in nanoseconds.
+        Returns
+        -------
+        points : np.ndarray
+            Point coordinates with shape (N, 3).
 
-    #     Returns:
+        actual_timestamp : int
+            Timestamp of the selected scan.
 
-    #         pointcloud
-    #         actual_timestamp
-    #         index
-    #         difference
-    #     """
+        index : int
+            Selected scan index.
 
-    #     timestamp = int(timestamp)
+        difference : int
+            Absolute timestamp difference in nanoseconds.
+        """
 
-    #     index = np.searchsorted(
-    #         self._timestamps,
-    #         timestamp
-    #     )
+        timestamp = int(timestamp)
 
-    #     if index == 0:
-    #         closest_index = 0
+        index = np.searchsorted(
+            self._timestamps,
+            timestamp,
+        )
 
-    #     elif index >= self.num_frames:
-    #         closest_index = self.num_frames - 1
+        if index == 0:
 
-    #     else:
-    #         previous_index = index - 1
-    #         next_index = index
+            closest_index = 0
 
-    #         previous_difference = abs(
-    #             int(self._timestamps[previous_index])
-    #             - timestamp
-    #         )
+        elif index >= self.num_frames:
 
-    #         next_difference = abs(
-    #             int(self._timestamps[next_index])
-    #             - timestamp
-    #         )
+            closest_index = (
+                self.num_frames - 1
+            )
 
-    #         if previous_difference <= next_difference:
-    #             closest_index = previous_index
-    #         else:
-    #             closest_index = next_index
+        else:
 
-    #     actual_timestamp = int(
-    #         self._timestamps[closest_index]
-    #     )
+            previous_index = index - 1
+            next_index = index
 
-    #     difference = abs(
-    #         actual_timestamp - timestamp
-    #     )
+            previous_difference = abs(
+                int(
+                    self._timestamps[
+                        previous_index
+                    ]
+                )
+                - timestamp
+            )
 
-    #     pointcloud = self.read_pointcloud(
-    #         closest_index
-    #     )
+            next_difference = abs(
+                int(
+                    self._timestamps[
+                        next_index
+                    ]
+                )
+                - timestamp
+            )
 
-    #     return (
-    #         pointcloud,
-    #         actual_timestamp,
-    #         closest_index,
-    #         difference,
-    #     )
+            if (
+                previous_difference
+                <= next_difference
+            ):
+                closest_index = (
+                    previous_index
+                )
+            else:
+                closest_index = (
+                    next_index
+                )
+
+        actual_timestamp = int(
+            self._timestamps[
+                closest_index
+            ]
+        )
+
+        difference = abs(
+            actual_timestamp - timestamp
+        )
+
+        points = self.read_pointcloud(
+            closest_index
+        )
+
+        return (
+            points,
+            actual_timestamp,
+            closest_index,
+            difference,
+        )
 
     def timestamp_differences(self):
-        return np.diff(self._timestamps)
+        return np.diff(
+            self._timestamps
+        )
 
     def close(self):
         if self._source is not None:
@@ -215,12 +267,13 @@ class OusterReader:
 
     def _build_timestamp_index(self):
         """
-        Build an array containing one timestamp per LiDAR scan.
+        Build an array containing one timestamp
+        per LiDAR scan.
 
         Ouster timestamps are stored in nanoseconds.
 
-        Only the timestamp array is retained. The actual
-        scans are NOT stored in memory.
+        Only the timestamp array is retained.
+        The actual scans are NOT stored in memory.
         """
 
         timestamps = []
@@ -235,13 +288,15 @@ class OusterReader:
             if scan is None:
                 continue
 
-            timestamp = self._get_scan_timestamp(scan)
+            timestamp = (
+                self._get_scan_timestamp(scan)
+            )
 
             timestamps.append(timestamp)
 
         return np.asarray(
             timestamps,
-            dtype=np.int64
+            dtype=np.int64,
         )
 
     @staticmethod
@@ -254,19 +309,22 @@ class OusterReader:
 
         timestamps = scan.timestamp
 
-        valid = timestamps[timestamps > 0]
+        valid = timestamps[
+            timestamps > 0
+        ]
 
         if len(valid) == 0:
             raise RuntimeError(
                 "LiDAR scan contains no valid timestamps."
             )
-    
+
         return int(valid[0])
 
     def _check_index(self, index):
+
         if not isinstance(
             index,
-            (int, np.integer)
+            (int, np.integer),
         ):
             raise TypeError(
                 f"Scan index must be an integer, "
