@@ -16,6 +16,36 @@ Four Basler cameras running at 20 FPS and full resolution produce approximately:
 
 ---
 
+# Quick Start
+
+After changes:
+
+```bash
+./0_build.sh
+```
+
+Set recording path in `./BaslerArray/build/PTP_Recorder/configs/recorder_config.json`.
+
+Synchronize the sensors:
+
+```bash
+./1_sync_ptp.sh
+```
+
+Wait for convergence... Start capturing (r to toggle recording & Esc/q to exit):
+
+```bash
+./2_start_capture.sh
+```
+
+Validate the latest recording:
+
+```bash
+./3_validate.sh
+```
+
+---
+
 # Setup Linux PTP
 
 ```bash
@@ -27,8 +57,6 @@ sudo apt install linuxptp
 # Ubuntu Setup
 
 These instructions describe how to prepare a fresh Ubuntu installation for building and running the BaslerRecorder / PTP_Recorder.
-
-> **Note:** There is currently no x86 configuration for this project. Install the pylon package matching the architecture of the Ubuntu system.
 
 ## 1. Update Ubuntu
 
@@ -276,7 +304,15 @@ BaslerArray/
 
 ## 11. Build PTP_Recorder
 
-Go to the project directory:
+You can use the following script to skip the setup steps. It will build the project, install the required Python dependencies, and copy the configuration files:
+
+```bash
+0_build.sh
+```
+
+You only need to run this when setting up the system for the first time or after making changes to the project.
+
+OPTIONALLY: Go to the project directory:
 
 ```bash
 cd /BaslerArray/BaslerArray
@@ -451,7 +487,21 @@ The filename must match the camera name defined in `camera_mapping.json`.
 
 ## 13. Start PTP_Recorder
 
-From the `build` directory:
+Use PTP to synchronize sensors by running `1_sync_ptp.sh`, or with following commands:
+
+```bash
+sudo ptp4l -f /etc/linuxptp/my-ptp4l.conf -m
+```
+
+and
+
+```bash
+sudo phc2sys -s /dev/ptp6 -c /dev/ptp2 -c /dev/ptp4 -c /dev/ptp5 -c /dev/ptp7 -c CLOCK_REALTIME -O 0 -m
+```
+
+Wait for synchronization to converge.
+
+The recorder can then be started with `2_start_capture.sh`, or manually from the build directory:
 
 ```bash
 ./PTP_Recorder
@@ -472,6 +522,8 @@ Press `r` to start recording.
 A new take directory is created using the current timestamp.
 
 Press `r` again to stop recording.
+
+
 
 ---
 
@@ -717,4 +769,3 @@ Then:
 | NumPy                       | Binary data processing        |
 | OpenCV-Python               | PNG export                    |
 
-`nlohmann/json` does **not** need to be installed separately because it is included in the project.

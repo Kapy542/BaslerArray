@@ -401,9 +401,9 @@ def compare_camera_to_ouster(
 # Main
 # ============================================================
 
-def main(BASLER_FOLDER, OUSTER_FOLDER, TAKE_NAME):
+def main(rec_dir, take_name):
     
-    BASLER_FOLDER = Path(BASLER_FOLDER) / TAKE_NAME
+    BASLER_FOLDER = Path(rec_dir) / take_name
     
     print("=" * 60)
     print("Recording validation")
@@ -613,7 +613,7 @@ def main(BASLER_FOLDER, OUSTER_FOLDER, TAKE_NAME):
     # Ouster statistics
     # --------------------------------------------------------
 
-    ouster = OusterReader(OUSTER_FOLDER, TAKE_NAME)
+    ouster = OusterReader(rec_dir, take_name)
 
     validate_ouster_timing(
         ouster,
@@ -628,7 +628,7 @@ def main(BASLER_FOLDER, OUSTER_FOLDER, TAKE_NAME):
     print()
     print()
     print("=" * 60)
-    print("Camera ↔ Ouster synchronization")
+    print("Camera <-> Ouster synchronization")
     print("=" * 60)
     
     for camera_name in sorted(cameras.keys()):
@@ -642,7 +642,7 @@ def main(BASLER_FOLDER, OUSTER_FOLDER, TAKE_NAME):
         )
     
         print()
-        print(f"{camera_name} ↔ Ouster")
+        print(f"{camera_name} <-> Ouster")
     
         print(
             f"  Mean:              "
@@ -734,12 +734,6 @@ if __name__ == "__main__":
         type=str,
         help="Recordings folder for Baslers. (eg. contains folder '2026-09-05--17-56-44' which contains 'CAM_01' etc )",
     )
-
-    parser.add_argument(
-        "ouster_dir",
-        type=str,
-        help="Base recordings folder for Ouster. Contains .pcap and .json files",
-    )
     
     parser.add_argument(
         "take_name",
@@ -749,13 +743,11 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # rec_dir = args.rec_dir
-    # ouster_dir = args.ouster_dir
-    # take_name = args.take_name
+    rec_dir = args.rec_dir
+    take_name = args.take_name
     
-    rec_dir = "I:\JammerTestTestData"
-    ouster_dir = "I:\JammerTestTestData"
-    take_name = "2026-09-05--17-56-44"
+    # rec_dir = "I:\JammerTestTestData"
+    # take_name = "1970-01-01--04-14-34"
     
     # Redirect prints into log file
     export_dir = Path(rec_dir) / f"{take_name}_export"
@@ -763,7 +755,7 @@ if __name__ == "__main__":
     log_file = open(export_dir / "validation.txt", "w")
     sys.stdout = Tee(sys.__stdout__, log_file)
 
-    main(rec_dir, ouster_dir, take_name)
+    main(rec_dir, take_name)
     
     
     

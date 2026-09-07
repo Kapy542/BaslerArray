@@ -269,10 +269,8 @@ class BaslerReader:
             print(previous_difference)
             print(next_difference)
             if previous_difference < next_difference:
-                print("Prev smaller")
                 closest_index = previous_index
             else:
-                print("Next smaller")
                 closest_index = next_index
 
         actual_timestamp = int(

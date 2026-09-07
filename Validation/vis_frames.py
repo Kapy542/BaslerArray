@@ -12,7 +12,6 @@ from utils.stats import ts2utc
 
 def visualize_frames(
     rec_dir,
-    ouster_dir,
     take_name,
     frame_numbers,
     edge_margin=10,
@@ -43,7 +42,7 @@ def visualize_frames(
     """
 
     rec_dir = Path(rec_dir)
-    ouster_dir = Path(ouster_dir)
+    ouster_dir = Path(rec_dir)
 
     camera_ids = [
         "CAM_01",
@@ -173,6 +172,7 @@ def visualize_frames(
             safe_end_index = common_end_index
             
         # TODO: Remove
+        safe_start_index = 10
         safe_end_index = cameras["CAM_01"].frame_count - 10
     
         print()
@@ -716,31 +716,35 @@ if __name__ == "__main__":
     parser.add_argument(
         "rec_dir",
         type=str,
-        help="Recordings folder for Baslers. (eg. contains folder '2026-09-05--17-56-44' which contains 'CAM_01' etc )",
-    )
-
-    parser.add_argument(
-        "ouster_dir",
-        type=str,
-        help="Base recordings folder for Ouster. Contains .pcap and .json files",
+        help="Recordings folder for Baslers. (e.g. contains folder '2026-09-05--17-56-44' which contains 'CAM_01' etc )",
     )
     
     parser.add_argument(
         "take_name",
         type=str,
-        help="Name of the recording (eg. 2026-09-05--17-56-44)",
+        help="Name of the recording (e.g. 2026-09-05--17-56-44)",
+    )
+        
+    parser.add_argument(
+        "-i",
+        type=int,
+        default=None,
+        help="Frame index to process",
     )
     
     args = parser.parse_args()
     
-    # rec_dir = args.rec_dir
-    # ouster_dir = args.ouster_dir
-    # take_name = args.take_name
+    rec_dir = args.rec_dir
+    take_name = args.take_name
+    idx = args.i
+    
+    if idx is not None:
+        frames = [idx]
+    else:
+        frames = [0, -1]
+    
+    # rec_dir = "I:\JammerTestTestData"
+    # take_name = "1970-01-01--04-14-34"
     # frames = [0, -1]
     
-    rec_dir = "I:\JammerTestTestData"
-    ouster_dir = "I:\JammerTestTestData"
-    take_name = "2026-09-05--17-56-44"
-    frames = [0, -1]
-    
-    visualize_frames(rec_dir, ouster_dir, take_name, [0, -1])
+    visualize_frames(rec_dir, take_name, frames)

@@ -30,7 +30,7 @@ class OusterReader:
         take_name,
     ):
         pcap_filename = take_name + ".pcap"
-        metadata_filename = take_name + ".json"
+        metadata_filename = take_name + "_0.json"
 
         self.recording_dir = Path(recording_dir)
 
