@@ -710,7 +710,7 @@ def pointcloud_to_bev(
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(
-        description="Validate Basler and Ouster data by exproting frames"
+        description="Validate Basler and Ouster data by exporting frames"
     )
 
     parser.add_argument(

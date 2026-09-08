@@ -1,5 +1,16 @@
 Ubuntu PTP set up Boundary Clock (BC): https://wiki.gsi.de/TOS/Timing/RunOrdinaryBoundaryClocksUsingLinuxptp
 
+https://novatel.com/support/support-materials/software-downloads
+GNSS: https://docs.novatel.com/OEM7/Content/Configuration/PTP_Configuration.htm?TocPath=Operation%7CReceiver%20time%7C_____1
+
+PTPMODE ENABLE
+PTPPROFILE PTP_UDP
+PTPTIMESCALE PTP_TIME
+SAVECONFIG
+LOG PTPDELTATIMEA
+LOG PTPDELTATIME ONTIME 1
+
+
 commands: ptp4l, phc2sys
 
 ptp4l: Synchronizes the NIC’s hardware clock (PHC) with connected device. PTP master is decided based on priority.
