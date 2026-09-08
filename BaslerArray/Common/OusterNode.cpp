@@ -11,10 +11,8 @@ using namespace std;
 
 
 OusterNode::OusterNode(
-    const string& sensor,
-    const bool& preview)
-    : sensor(sensor),
-    preview(preview)
+    const string& sensor)
+    : sensor(sensor)
 {
 }
 
@@ -72,37 +70,20 @@ bool OusterNode::Start(const std::string& outputPath)
 
     if (processId == 0)
     {
-        std::string ousterCliPath = ".venv/bin/ouster-cli";
-        if (preview) {
-            execl(
-                ousterCliPath.c_str(),
-                "ouster-cli",
+        std::string ousterCliPath = "../../../.venv/bin/ouster-cli";
+        //std::string ousterCliPath = "ouster-cli";
+        execl(
+            ousterCliPath.c_str(),
+            "ouster-cli",
 
-                "source",
-                sensor.c_str(),
+            "source",
+            sensor.c_str(),
 
-                "save_raw",
-                outputFile.c_str(),
+            "save_raw",
+            outputFile.c_str(),
 
-                "viz", // optional preview
-
-                nullptr
-            );
-        }
-        else {
-            execl(
-                ousterCliPath.c_str(),
-                "ouster-cli",
-
-                "source",
-                sensor.c_str(),
-
-                "save_raw",
-                outputFile.c_str(),
-
-                nullptr
-            );
-        }
+            nullptr
+        );
 
 
         /*

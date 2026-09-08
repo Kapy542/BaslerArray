@@ -8,5 +8,6 @@ struct Frame {
     std::string cameraId;
     uint64_t timestamp;
     uint64_t frameId;
-    Pylon::CGrabResultPtr grab;
+    //Pylon::CGrabResultPtr grab;
+    std::vector<uint8_t> image;
 };

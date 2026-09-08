@@ -23,8 +23,6 @@ RecorderConfig LoadRecorderConfig(const std::string& filename)
 
     config.enableOuster = json["enableOuster"];
     config.ousterSensor = json["ousterSensor"];
-    config.ousterOutputDirectory = json["ousterOutputDirectory"];
-    config.ousterPreview = json["ousterPreview"];
 
     return config;
 }

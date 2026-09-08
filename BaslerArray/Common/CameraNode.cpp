@@ -26,7 +26,9 @@ void CameraNode::Configure(const CameraConfig& config) {
     INodeMap& n = camera.GetNodeMap();
 
     cameraConfiguration = config;
+    
 
+    
     // Pixel format
     // Before setting, use default orientation because mirroring the image will change the bayer pattern order
     TrySetBool(n, "ReverseX", false);

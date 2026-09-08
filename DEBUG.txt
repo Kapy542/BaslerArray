@@ -1,0 +1,30 @@
+# enpXs0 = GNSS
+# enp3s0 = ptp2 = Ouster
+# enp5s0 = ptp4 = CAM 1 Left-Stereo
+# enp6s0 = ptp5 = CAM 2 Right-Stereo
+# enp7s0 = ptp6 = CAM 3 Left
+# enp8s0 = ptp7 = CAM 4 Right
+
+
+df -h /tmp
+
+sudo sysctl -w net.ipv4.conf.all.rp_filter=0
+sudo sysctl -w net.ipv4.conf.default.rp_filter=0
+
+sudo ifconfig enp5s0 mtu 9000
+sudo ethtool -G enp5s0 rx 4096 tx 4096
+sudo ethtool -C enp5s0 adaptive-rx off adaptive-tx off rx-usecs 62 tx-usecs 62
+
+sudo ifconfig enp6s0 mtu 9000
+sudo ethtool -G enp6s0 rx 4096 tx 4096
+sudo ethtool -C enp6s0 adaptive-rx off adaptive-tx off rx-usecs 62 tx-usecs 62
+
+sudo ifconfig enp7s0 mtu 9000
+sudo ethtool -G enp7s0 rx 4096 tx 4096
+sudo ethtool -C enp7s0 adaptive-rx off adaptive-tx off rx-usecs 62 tx-usecs 62
+
+sudo ifconfig enp7s0 mtu 9000
+sudo ethtool -G enp7s0 rx 4096 tx 4096
+sudo ethtool -C enp7s0 adaptive-rx off adaptive-tx off rx-usecs 62 tx-usecs 62
+
+sudo ufw disable

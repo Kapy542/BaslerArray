@@ -66,10 +66,9 @@ void CameraManager::Initialize(
     // Use ouster if enabled
     if (recorderConfig.enableOuster)
     {
-        ousterOutputDir = recorderConfig.ousterOutputDirectory;
+        ousterOutputDir = recorderConfig.outputDirectory;
         ouster = std::make_unique<OusterNode>(
-            recorderConfig.ousterSensor,
-            recorderConfig.ousterPreview
+            recorderConfig.ousterSensor
             );
     }
 }
@@ -253,6 +252,10 @@ void CameraManager::Stop() {
     if (triggerThread.joinable()) {
         triggerThread.join();
     }
+    
+    if (ouster) {
+      ouster->Stop();
+    }
 }
 
 
@@ -325,6 +328,8 @@ void CameraManager::RequestSave() {
 }
 
 void CameraManager::StartRecording() {
+    std::cout << std::endl << "Starting recording..." << std::endl;
+    
     std::string take_name;
     take_name = getTimeString();
     currentRecordingDir = outputDir + "/" + take_name + "/";
@@ -371,7 +376,7 @@ void CameraManager::StopRecording() {
 
     recording = false;
     
-    std::cout << "Recording stopped" << std::endl;
+    std::cout << "Recording stopped" << std::endl << std::endl;
 }
 void CameraManager::ToggleRecording() {
     if (recording) {
@@ -398,53 +403,78 @@ void CameraManager::GrabLoop(CameraNode* cam) {
     CGrabResultPtr res;
 
     while (running && cam->camera.IsGrabbing()) {
-        //Log(cam->logicalId + " Waiting image...");
-        if (cam->camera.RetrieveResult(5000, res, TimeoutHandling_ThrowException)) {
+    
+        try {
+            if (cam->camera.RetrieveResult(5000, res, TimeoutHandling_ThrowException)) {
 
-            if (res->GrabSucceeded()) {
+                if (res->GrabSucceeded()) {
+                    /*
+                    Frame f{
+                        cam->logicalId,
+                        res->GetTimeStamp(),
+                        res->GetBlockID(),
+                        res
+                    };
+                    */                  
+                    Frame f;
 
-                //Log("Got a image from: " + cam->logicalId);
-                /*
-                if (cam->logicalId == "01") {
-                    Log("Got a image from: " + cam->logicalId);
-                    Log("BlockID: " + std::to_string(res->GetBlockID()) + 
-                        "  triggerID: " + std::to_string(triggerId.load()) + 
-                        "  saveTriggerID: " + std::to_string(saveTriggerId.load()));
+                    f.cameraId = cam->logicalId;
+                    f.timestamp = res->GetTimeStamp();
+                    f.frameId = res->GetBlockID();
+
+                    const size_t imageSize = res->GetImageSize();
+
+                    f.image.resize(imageSize);
+                    std::memcpy(
+                        f.image.data(),
+                        res->GetBuffer(),
+                        imageSize
+                    );
+                    
+                    if (recording) {
+                        frameQueue.push(std::move(f));
+                    }
+
+                    // Every Nth frame goes to preview
+                    if (f.frameId % PREVIEW_EVERY_N == 0) {
+                        previewQueue.push(std::move(f));
+                    }
+                    
+                    //std::cout << cam->logicalId << " " << res->GetTimeStamp() << std::endl;
+                    /*
+                    if (recording) {
+                        frameQueue.push(f);
+                    }
+
+                    // Every Nth frame goes to preview
+                    if (f.frameId % PREVIEW_EVERY_N == 0) {
+                        previewQueue.push(f);
+                    }
+                    */
+                    
                 }
-                */
-
-                Frame f{
-                    cam->logicalId,
-                    res->GetTimeStamp(),
-                    res->GetBlockID(),
-                    res
-                };
-
-                
-                // A single image with requested index is written to the disk
-                // res->GetBlockID() should match corresponding triggerId?
-                if (res->GetBlockID() == saveTriggerId.load()) {
-                    //Log(cam->logicalId + " found matching ID...");
-                    frameQueue.push(f);
-                }
-                
-
-                if (recording) {
-                    frameQueue.push(f);
-                }
-
-                // Every Nth frame goes to preview
-                if (f.frameId % PREVIEW_EVERY_N == 0) {
-                    previewQueue.push(f);
+                else
+                {
+                    std::cerr << "Grab failed. "
+                        << "Camera: " << cam->logicalId
+                        << "Error code: " << res->GetErrorCode()
+                        << ", Description: " << res->GetErrorDescription()
+                        << std::endl;
                 }
             }
-            else
-            {
-                std::cerr << "Grab failed. "
-                    << "Error code: " << res->GetErrorCode()
-                    << ", Description: " << res->GetErrorDescription()
-                    << std::endl;
-            }
+        }
+        catch (const Pylon::TimeoutException& e) {
+            std::cerr
+                << "TIMEOUT: Camera " << cam->logicalId
+                << ": " << e.what()
+                << std::endl;
+        }
+        catch (const Pylon::GenericException& e) {
+            std::cerr
+                << "PYLON ERROR: Camera " << cam->logicalId
+                << ": " << e.what()
+                << std::endl;
+            break;
         }
     }
     Log("Grap loop for camera: " + cam->logicalId + " exiting...");
@@ -459,7 +489,7 @@ void CameraManager::ConsumeLoop() {
         Log("Writing " + f.cameraId + " Frame " + to_string(f.frameId) +
             " Timestamp " + to_string(f.timestamp) + "\n");
         */
-        if ((f.frameId % 10 == 0) && (frameQueue.size() > 10))
+        if (frameQueue.size() > 10)
         {
             Log("Queue size: " + std::to_string(frameQueue.size()));
         }
@@ -467,9 +497,9 @@ void CameraManager::ConsumeLoop() {
             //SaveRaw(f, currentRecordingDir);            
             frameWriters[f.cameraId].Write(f);
         }
-        else {
-            SaveImage(f, currentRecordingDir);
-        }
+        //else {
+        //    SaveImage(f, currentRecordingDir);
+        //}
     }
 
     std::cout << "Consumer thread exiting..." <<std:: endl;
@@ -489,54 +519,91 @@ void CameraManager::PreviewLoop() {
         if (!previewQueue.pop(f)) {
             break;
         }
+        
+        if (previewQueue.size() > 10)
+        {
+            Log("Preview Queue size: " + std::to_string(previewQueue.size()));
+        }
 
-        buffer[f.frameId][f.cameraId] = f;
+        buffer[f.frameId][f.cameraId] = std::move(f);
 
         if (buffer[f.frameId].size() == numCameras) {
 
             auto& frames = buffer[f.frameId];
 
-            int w = frames.begin()->second.grab->GetWidth();
-            int h = frames.begin()->second.grab->GetHeight();
+            const auto& firstFrame = frames.begin()->second;
+
+            // Assuming all cameras have the same resolution
+            int w = 1920;
+            int h = 1200;
+
+            // TODO: Store width/height in Frame if cameras can differ
+            // int w = firstFrame.width;
+            // int h = firstFrame.height;
 
             // TODO: Automatic grid size
             int cols = 2;
             int rows = 3;
 
-            cv::Mat grid = cv::Mat::zeros(rows * h, cols * w, CV_8UC3);
+            cv::Mat grid = cv::Mat::zeros(
+                rows * h,
+                cols * w,
+                CV_8UC3
+            );
 
             int i = 0;
+
             for (auto& [id, frame] : frames) {
 
-                cv::Mat img(h, w, CV_8UC1, (uint8_t*)frame.grab->GetBuffer());
+                // Frame owns its own image data now.
+                cv::Mat img(
+                    h,
+                    w,
+                    CV_8UC1,
+                    frame.image.data()
+                );
 
                 // Bayer to color
                 cv::Mat imgColor;
-                cv::cvtColor(img, imgColor, cv::COLOR_BayerRG2RGB);
+                cv::cvtColor(
+                    img,
+                    imgColor,
+                    cv::COLOR_BayerRG2RGB
+                );
 
-                // Camera_idx
+                // Camera ID
                 cv::putText(
                     imgColor,
                     "Cam " + frame.cameraId,
-                    cv::Point(30, 50),              // position
+                    cv::Point(30, 50),
                     cv::FONT_HERSHEY_SIMPLEX,
-                    2.0,                            // font scale
-                    cv::Scalar(0, 255, 0),          // green text
-                    3                               // thickness
+                    2.0,
+                    cv::Scalar(0, 255, 0),
+                    3
                 );
 
-                // Timestamp
-                cv::putText(imgColor,
+                // Frame ID
+                cv::putText(
+                    imgColor,
                     "Frame " + std::to_string(frame.frameId),
                     cv::Point(35, 100),
                     cv::FONT_HERSHEY_SIMPLEX,
                     1.3,
                     cv::Scalar(255, 255, 0),
-                    2);
+                    2
+                );
 
                 int r = i / cols;
                 int c = i % cols;
-                imgColor.copyTo(grid(cv::Rect(c * w, r * h, w, h)));
+
+                imgColor.copyTo(
+                    grid(cv::Rect(
+                        c * w,
+                        r * h,
+                        w,
+                        h
+                    ))
+                );
 
                 i++;
             }
@@ -571,9 +638,9 @@ void CameraManager::PreviewLoop() {
                 std::cout << "Exit requested..." << std::endl;
                 running = false;
             }
-            else if (key == 'w') {
-                RequestSave();              
-            }
+            //else if (key == 'w') {
+            //    RequestSave();              
+            //}
             else if (key == 'r') {
                 ToggleRecording();
             }

@@ -1,11 +1,9 @@
 {
-  "outputDirectory": "recordings",
+  "outputDirectory": "/home/civit/Desktop/recordings",
   "preview": true,
   "previewEveryNth": 1,
   
   "enableOuster": true,
-  "ousterSensor": "169.254.242.16",
-  "ousterOutputDirectory": "recordings",
-  "ousterPreview": false
+  "ousterSensor": "169.254.242.16"
 }
   

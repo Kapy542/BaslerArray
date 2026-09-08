@@ -8,8 +8,7 @@ class OusterNode
 {
 public:
     OusterNode(
-        const std::string& sensor,
-        const bool& preview);
+        const std::string& sensor);
 
     ~OusterNode();
 
@@ -25,7 +24,6 @@ public:
 
 private:
     std::string sensor;
-    bool preview;
 
     pid_t processId = -1;
 };

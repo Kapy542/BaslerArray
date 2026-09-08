@@ -1,5 +1,14 @@
+# enp2s0 = ptp0? = GNSS
+# enp3s0 = ptp2? = Ouster
+# enp5s0 = ptp4 = CAM 1 Left-Stereo
+# enp6s0 = ptp5 = CAM 2 Right-Stereo
+# enp7s0 = ptp6 = CAM 3 Left
+# enp8s0 = ptp7 = CAM 4 Right
+
+
 Ubuntu PTP set up Boundary Clock (BC): https://wiki.gsi.de/TOS/Timing/RunOrdinaryBoundaryClocksUsingLinuxptp
 
+GNSS
 https://novatel.com/support/support-materials/software-downloads
 GNSS: https://docs.novatel.com/OEM7/Content/Configuration/PTP_Configuration.htm?TocPath=Operation%7CReceiver%20time%7C_____1
 
@@ -10,7 +19,11 @@ SAVECONFIG
 LOG PTPDELTATIMEA
 LOG PTPDELTATIME ONTIME 1
 
+OUSTER:
+http://169.254.242.16/api/v1/time
 
+
+SET UP BOUNDARY CLOCK:
 commands: ptp4l, phc2sys
 
 ptp4l: Synchronizes the NIC’s hardware clock (PHC) with connected device. PTP master is decided based on priority.
@@ -50,6 +63,7 @@ sudo ptp4l -f /etc/linuxptp/my-ptp4l.conf -m
 
 sudo ptp4l \
     -f /etc/linuxptp/my-ptp4l.conf \
+    -i enp2s0 \
     -i enp3s0 \
     -i enp5s0 \
     -i enp6s0 \
@@ -68,7 +82,7 @@ sudo phc2sys -a -r -m
 sudo phc2sys -a -r -f /etc/linuxptp/my-ptp4l.conf -m
 
 # Debug
-for i in enp3s0 enp5s0 enp6s0 enp7s0 enp8s0; do     echo -n "$i -> ";     readlink -f /sys/class/net/$i/device/ptp/ptp*; done
+for i in enp2s0 enp3s0 enp5s0 enp6s0 enp7s0 enp8s0; do     echo -n "$i -> ";     readlink -f /sys/class/net/$i/device/ptp/ptp*; done
 
 sudo phc2sys -s /dev/ptp6 -c /dev/ptp2 -c /dev/ptp4 -c /dev/ptp5 -c /dev/ptp7 -O 0 -m
 sudo phc2sys -s /dev/ptp6 -c /dev/ptp2 -c /dev/ptp4 -c /dev/ptp5 -c /dev/ptp7 -c CLOCK_REALTIME -O 0 -m
@@ -82,5 +96,5 @@ phc_ctl[14408.640]: clock time is 1631103584.010256074 or Wed Sep  8 14:19:44 20
 
 
 
-    
+
 

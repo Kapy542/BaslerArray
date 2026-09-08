@@ -37,11 +37,11 @@ echo
 
 # Run validation
 echo "=== Validating recording ==="
-python ./Validation/validate_recording.py "$RECORDING_DIR" "$TAKE_NAME"
+python ./Validation/validate_recording.py "$OUTPUT_DIR" "$TAKE_NAME"
 
 echo
 echo "=== Visualizing frames ==="
-python ./Validation/vis_frames.py "$RECORDING_DIR" "$TAKE_NAME"
+python ./Validation/vis_frames.py "$OUTPUT_DIR" "$TAKE_NAME"
 
 echo
 echo "Validation finished."

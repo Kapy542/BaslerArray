@@ -60,6 +60,7 @@ namespace fs = std::filesystem;
 
 // Save using Pylon (cross-platform, no extra deps)
 void SaveImage(const Frame& f, const std::string& baseDir) {
+/*
     try {
         // Create per-camera directory: output/01/, output/02/, ...
         fs::path dir = fs::path(baseDir) / f.cameraId;
@@ -85,11 +86,13 @@ void SaveImage(const Frame& f, const std::string& baseDir) {
     catch (const GenericException& e) {
         std::cerr << "Save error: " << e.GetDescription() << std::endl;
     }
+*/
 }
 
 // Save raw image
 void SaveRaw(const Frame& f, const std::string& baseDir)
 {
+/*
     try
     {
         // Create per-camera directory: output/01/, output/02/, ...
@@ -129,6 +132,7 @@ void SaveRaw(const Frame& f, const std::string& baseDir)
     {
         std::cerr << "SaveRaw error: " << e.what() << std::endl;
     }
+*/
 }
 
 
@@ -222,6 +226,7 @@ void FrameWriter::Open(const std::string& directory, const CameraConfig& config)
 
 void FrameWriter::Write(const Frame& f)
 {
+    /*
     // Get image data from Pylon grab result
     const void* buffer = f.grab->GetBuffer();
     size_t size = f.grab->GetImageSize();
@@ -229,6 +234,14 @@ void FrameWriter::Write(const Frame& f)
     frameFile.write(
         reinterpret_cast<const char*>(buffer),
         static_cast<std::streamsize>(size));
+
+    timestampFile.write(
+        reinterpret_cast<const char*>(&f.timestamp),
+        sizeof(f.timestamp));
+    */
+    frameFile.write(
+        reinterpret_cast<const char*>(f.image.data()),
+        static_cast<std::streamsize>(f.image.size()));
 
     timestampFile.write(
         reinterpret_cast<const char*>(&f.timestamp),

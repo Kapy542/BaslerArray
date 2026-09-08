@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")"
 
-source .venv/bin/activate
+# source .venv/bin/activate
 
 cd ./BaslerArray/build/PTP_Recorder
 
@@ -18,13 +18,16 @@ if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
 fi
 
-./BaslerArray/build/PTP_Recorder/PTP_Recorder &
-RECORDER_PID=$!
+#./PTP_Recorder &
+#RECORDER_PID=$!
 
-echo "PTP_Recorder started (PID $RECORDER_PID)"
+gnome-terminal --title="Basler Recorder" -- bash -c \
+    "./PTP_Recorder"
+ 
+echo "PTP_Recorder started"
 
 # Monitor recording
-while kill -0 "$RECORDER_PID" 2>/dev/null; do
+while true; do
     echo
     echo "[$(date '+%H:%M:%S')] Disk space:"
     df -h "$OUTPUT_DIR"

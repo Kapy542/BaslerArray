@@ -18,7 +18,7 @@
 	  "blue": 159
 	},
 	
-  "fps": 0.5,
+  "fps": 20,
   "packetSize": 1500
 }
   
