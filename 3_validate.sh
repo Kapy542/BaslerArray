@@ -16,10 +16,11 @@ OUTPUT_DIR=$(jq -r '.outputDirectory' "$CONFIG")
 
 echo "Recording directory:"
 echo "  $OUTPUT_DIR"
-echo
+echo 
 
 # Find most recent recording
 RECORDING_DIR=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d \
+    ! -name '*_export' \
     -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f2-)
 
 if [ -z "$RECORDING_DIR" ]; then

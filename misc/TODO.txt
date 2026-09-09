@@ -1,23 +1,5 @@
-X - Setup linuxptp (PTP/ptp4l.conf)
-- (PTP setup with GNSS, enable PTP on GNSS, Add that port to the gonfig file and phc2sys command)
-- Use phc2sys with -a ?
-
-- Setup Ouster (Ouster/)
-- Setup start script (start_capture.sh)
-- Short test run and process/test over weekend
-- Setup check script (add into start_capture.sh)
-- Fix cameras, calibrate, and write parameters into ()
-- Double check synchronization with PTP logs and output data
-
-- Save directory into the start_capture.sh and pass to PTP_Recorder as an argument
-
-- Label everything
-- Write simple Recording Instructions and Check Cheet.
-
-
-sudo ptp4l -f /etc/linuxptp/my-ptp4l.conf -m 
-sudo phc2sys -s /dev/ptp6 -c /dev/ptp2 -c /dev/ptp4 -c /dev/ptp5 -c /dev/ptp7 -O 0 -m
-./PTP_Recorder
-source .venv/bin/activate
-ouster-cli source 169.254.242.16 save capture.pcap 
-ouster-cli source 169.254.242.16 save capture.pcap viz
+Calibration
+Calibration files
+Calibration check
+Instructions
+SSDs

@@ -1,5 +1,7 @@
-# enp2s0 = ptp0? = GNSS
-# enp3s0 = ptp2? = Ouster
+# enp4s0 = UI
+
+# enp2s0 = ptp0 = GNSS
+# enp3s0 = ptp1 = Ouster
 # enp5s0 = ptp4 = CAM 1 Left-Stereo
 # enp6s0 = ptp5 = CAM 2 Right-Stereo
 # enp7s0 = ptp6 = CAM 3 Left

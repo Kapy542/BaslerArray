@@ -151,7 +151,8 @@ void CameraManager::WaitForPtpSync() {
                 allSynced = false;
             }
         }
-        if (master_count > 1) { allSynced = false; }
+        // 1 <-> 0
+        if (master_count > 0) { allSynced = false; }
 
         this_thread::sleep_for(chrono::milliseconds(500));
     }

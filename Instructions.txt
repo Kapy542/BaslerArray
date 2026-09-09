@@ -1,0 +1,119 @@
+# Recording Instructions
+
+## After boot
+
+Before starting a recording:
+
+1. **Set the GNSS IP address** to 192.168.200.1 if required.
+   `/home/civit/Downloads/NovAtelApplicationSuite_1-15-0_Linux/NovAtelApplicationSuite_64bit.AppImage`
+
+2. **Set the Ouster destination IP address** to the recording PC (in http://169.254.242.16/config):
+   `169.254.64.52`
+
+   > If the Ouster does not send data after boot, set the destination to **Default/Auto** first and then set it back to `169.254.64.52`.
+
+3. **Mount the external recording SSD**:
+
+   * Open the SSD with **File Explorer**.
+   * Ubuntu will ask for the password: `123qwe`.
+   * This must be done **after every PC restart and whenever a new drive is connected**.
+
+> **IMPORTANT:** Record data **ONLY on the external SSD**. Do not record datasets to the PC's internal drive.
+
+## When switching the recording SSD
+
+Update the recording output directory in:
+
+`/home/civit/Desktop/BaslerArray/BaslerArray/build/PTP_Recorder/configs/recorder_config.json`
+
+Set:
+
+```json
+"outputDirectory": "/run/media/civit/T7/recordings"
+```
+
+Replace `T7` with the actual mounted drive name if a different SSD is being used.
+
+---
+
+# Recording procedure
+
+### 1. Start PTP synchronization
+
+Run:
+
+```bash
+./1_sync_ptp.sh
+```
+
+This opens two terminal windows that handle PTP synchronization.
+
+**Wait for PTP to stabilize before recording.**
+
+The main window should eventually show:
+
+```text
+Sync OK
+```
+
+This can take approximately **30–60 seconds**.
+
+> **IMPORTANT:** The Ouster may take longer to synchronize than the cameras. Do not start recording until it reports `Sync OK`.
+
+For troubleshooting, run:
+
+```bash
+./poll_ouster.sh
+```
+
+This shows the Ouster PTP status and `offset_from_master` while it is synchronizing.
+
+---
+
+### 2. Start capture
+
+Run:
+
+```bash
+./2_start_capture.sh
+```
+
+In the preview window:
+
+* Press **`r`** to start/stop recording.
+* Press **`Esc`** or **`q`** to quit the capture application.
+
+---
+
+### 3. Validate the recording
+
+After recording, run:
+
+```bash
+./3_validate.sh
+```
+
+This validates the latest recording, including:
+
+* Camera frame counts and timing
+* Camera synchronization
+* Ouster timing
+* Camera–Ouster timestamp alignment
+* Missing/duplicate frames
+
+
+
+
+
+
+
+# Debug:
+
+Ouster:
+http://169.254.242.16/
+http://169.254.242.16/api/v1/time
+/home/civit/Downloads/start_ouster_studio.sh
+
+GNSS:
+/home/civit/Downloads/NovAtelApplicationSuite_1-15-0_Linux/NovAtelApplicationSuite_64bit.AppImage
+

@@ -1,0 +1,108 @@
+	
+ptp	
+time_status_np	
+scaled_last_gm_phase_change	0
+ingress_time	1788950549852966306JS:1788950549852966400
+last_gm_phase_change	"0x0000'0000000000000000.0000"
+gm_identity	"002166.fffe.047868"
+gm_present	true
+cumulative_scaled_rate_offset	0.0JS:0
+master_offset	-1818852942602
+gm_time_base_indicator	0
+profile	"default"
+parent_data_set	
+gm_offset_scaled_log_variance	65535
+parent_stats	0
+grandmaster_priority2	128
+parent_port_identity	"d04cc1.fffe.04fc16-2"
+grandmaster_priority1	128
+gm_clock_class	7
+observed_parent_clock_phase_change_rate	2147483647
+grandmaster_identity	"002166.fffe.047868"
+observed_parent_offset_scaled_log_variance	65535
+gm_clock_accuracy	43
+port_data_set	
+port_state	"SLAVE"
+version_number	2
+peer_mean_path_delay	0
+announce_receipt_timeout	3
+log_min_pdelay_req_interval	0
+log_sync_interval	0
+port_identity	"bc0fa7.fffe.0011bc-1"
+log_min_delay_req_interval	0
+delay_mechanism	1
+log_announce_interval	1
+current_data_set	
+offset_from_master	-1818852942602.0JS:-1818852942602
+steps_removed	2
+mean_path_delay	-6916895.0JS:-6916895
+time_properties_data_set	
+current_utc_offset	37
+frequency_traceable	1
+leap61	0
+ptp_timescale	1
+leap59	0
+time_traceable	1
+time_source	32
+current_utc_offset_valid	1
+sensor	
+timestamp	
+mode	"TIME_FROM_PTP_1588"
+time_options	
+ptp_1588	1788950550
+sync_pulse_in	0
+internal_osc	2006
+time	1788950550.6935821JS:1788950550.693582
+multipurpose_io	
+mode	"OFF"
+sync_pulse_out	
+angle_deg	360
+frequency_hz	1
+pulse_width_ms	10
+polarity	"ACTIVE_HIGH"
+nmea	
+leap_seconds	0
+ignore_valid_char	0
+locked	0
+diagnostics	
+decoding	
+last_read_message	""
+date_decoded_count	0
+not_valid_count	0
+utc_decoded_count	0
+io_checks	
+start_char_count	0
+bit_count	1
+char_count	0
+bit_count_unfiltered	0
+baud_rate	"BAUD_9600"
+polarity	"ACTIVE_HIGH"
+sync_pulse_in	
+diagnostics	
+count	0
+last_period_nsec	0
+count_unfiltered	1
+locked	0
+polarity	"ACTIVE_HIGH"
+system	
+realtime	1788950513.6091044
+tracking	
+ref_time_utc	1788950510.9541953
+root_dispersion	0.62474697800000001JS:0.624746978
+system_time_offset	-0.00042699399999999998JS:-0.000426994
+update_interval	2.0JS:2
+residual_frequency	103.325
+leap_status	"normal"
+skew	692.61099999999999JS:692.611
+rms_offset	0.045092001999999999JS:0.045092002
+frequency	-36848.508000000002JS:-36848.508
+last_offset	0.00021868300000000001JS:0.000218683
+reference_id	"70747000"
+remote_host	"ptp"
+stratum	1
+root_delay	1.0000000000000001e-09JS:1e-9
+monotonic	2018.015036255
+sensor
+timestamp
+time_options
+ptp_1588
