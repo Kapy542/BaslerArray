@@ -1,5 +1,7 @@
 # Recording Instructions
 
+In this exact order
+
 ## After boot
 
 Before starting a recording:
@@ -9,6 +11,7 @@ Before starting a recording:
 
 2. **Set the Ouster destination IP address** to the recording PC (in http://169.254.242.16/config):
    `169.254.64.52`
+   (`./set_ouster_ip.sh`)
 
    > If the Ouster does not send data after boot, set the destination to **Default/Auto** first and then set it back to `169.254.64.52`.
 
