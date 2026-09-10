@@ -212,7 +212,7 @@ class BaslerReader:
         # BayerRG8 -> BGR
         image = cv2.cvtColor(
             bayer,
-            cv2.COLOR_BAYER_RG2RGB
+            cv2.COLOR_BAYER_RG2BGR
         )
 
         return image

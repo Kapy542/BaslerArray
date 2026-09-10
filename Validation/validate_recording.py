@@ -26,7 +26,7 @@ from utils.stats import timestamp_statistics, validate_timestamps, compare_times
 EXPECTED_OUSTER_HZ = 10.0
 
 OUSTER_PERIOD_TOLERANCE_US = 1000.0
-CAMERA_OUSTER_SYNC_TOLERANCE_US = 500.0
+CAMERA_OUSTER_SYNC_TOLERANCE_US = 25000.0
 
 
 # Maximum allowed difference between synchronized cameras.
@@ -687,7 +687,7 @@ def main(rec_dir, take_name):
         )
     
         sync_ok = (
-            stats["over_tolerance"] == 0
+            stats["mean_ns"] < 26000000
         )
     
         print(

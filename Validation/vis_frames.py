@@ -120,11 +120,11 @@ def visualize_frames(
         )
 
         # TODO: uncomment
-        # if common_start >= common_end:
-        #     raise RuntimeError(
-        #         "No common time range exists between "
-        #         "the cameras and Ouster."
-        #     )
+        if common_start >= common_end:
+            raise RuntimeError(
+                "No common time range exists between "
+                "the cameras and Ouster."
+            )
 
         # --------------------------------------------------------------
         # Find corresponding CAM_01 frame range
@@ -151,11 +151,11 @@ def visualize_frames(
         ) - 1
 
         # TODO: uncomment
-        # if common_start_index > common_end_index:
-        #     raise RuntimeError(
-        #         "No CAM_01 frames exist inside "
-        #         "the common sensor time range."
-        #     )
+        if common_start_index > common_end_index:
+            raise RuntimeError(
+                "No CAM_01 frames exist inside "
+                "the common sensor time range."
+            )
 
         # Add safety margin.
         safe_start_index = (
@@ -172,8 +172,8 @@ def visualize_frames(
             safe_end_index = common_end_index
             
         # TODO: Remove
-        safe_start_index = 10
-        safe_end_index = cameras["CAM_01"].frame_count - 10
+        # safe_start_index = 10
+        # safe_end_index = cameras["CAM_01"].frame_count - 10
     
         print()
         print("Common sensor range:")
@@ -338,7 +338,7 @@ def visualize_frames(
                 f"Ouster: "
                 f"scan {ouster_index}, "
                 f"dt = "
-                f"{ouster_difference / 1_000:.3f} us"
+                f"{ouster_difference / 1_000_000:.3f} ms"
             )
 
             # ----------------------------------------------------------

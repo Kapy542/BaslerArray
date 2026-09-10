@@ -5,7 +5,7 @@ REM Always work relative to this BAT file
 cd /d "%~dp0"
 
 REM Recording directory
-set "RECORDING_DIR=I:\JammerTestTestData"
+set "RECORDING_DIR=I:\JammerTestTestData\recordings"
 
 echo.
 echo ========================================
