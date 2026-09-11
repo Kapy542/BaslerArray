@@ -5,8 +5,8 @@
   "reverseX": false,
   "reverseY": false,
   
-  "exposureUs": 10000.0,
-  "gainRaw": 100,
+  "exposureUs": 600.0,
+  "gainRaw": 40,
   "exposureAuto": "Off",
   "gainAuto": "Off", 
   
