@@ -1,5 +1,1 @@
-Calibration
-Calibration files
-Calibration check
-Instructions
-SSDs
+Remove Ouster rec
